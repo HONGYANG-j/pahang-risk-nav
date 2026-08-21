@@ -1,0 +1,723 @@
+* { box-sizing: border-box; }
+
+/* The UA stylesheet hides [hidden] via `display: none`, which ANY author-level
+   `display` declaration outranks -- so components using display:flex stayed on
+   screen while reporting .hidden === true. Keep this rule above everything
+   that sets display. */
+[hidden] { display: none !important; }
+
+:root {
+  --void: #03060d;
+  --bg-1: #060b16;
+  --bg-2: #0a1424;
+  --panel: rgba(9, 17, 32, 0.74);
+  --panel-strong: rgba(7, 13, 26, 0.88);
+  --border: rgba(120, 170, 220, 0.16);
+  --border-glow: rgba(34, 232, 255, 0.4);
+  --cyan: #22e8ff;
+  --cyan-dim: #0f8fae;
+  --amber: #ffb020;
+  --red: #ff3d68;
+  --green: #22d68a;
+  --text: #e7f1ff;
+  --text-dim: #8ea3c4;
+  --text-faint: #56698a;
+  --font-display: 'Orbitron', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html, body {
+  margin: 0; padding: 0; height: 100%; overflow: hidden;
+  font-family: var(--font-body);
+  background: var(--void);
+  color: var(--text);
+}
+
+/* ---------- shared button interaction states ---------- */
+/* Most controls had nothing but `cursor: pointer`: no hover, no press
+   feedback, and -- the real gap -- no visible keyboard focus anywhere in the
+   app, so tabbing through it was invisible. :focus-visible keeps the ring for
+   keyboard users without ringing every mouse click. */
+button { font: inherit; }
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+#app button { transition: filter 0.15s, transform 0.08s, background 0.15s, color 0.15s, border-color 0.15s; }
+#app button:not(:disabled):hover { filter: brightness(1.25); }
+#app button:not(:disabled):active { transform: scale(0.95); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ---------- shared HUD components ---------- */
+
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+  opacity: 0.85;
+  margin-bottom: 6px;
+}
+
+.scan-overlay {
+  position: absolute; inset: 0; z-index: 400; pointer-events: none;
+  background:
+    repeating-linear-gradient(180deg, rgba(140, 200, 255, 0.05) 0px, rgba(140, 200, 255, 0.05) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: overlay;
+}
+.scan-overlay::after {
+  content: "";
+  position: absolute; left: 0; right: 0; height: 140px;
+  background: linear-gradient(180deg, transparent, rgba(34, 232, 255, 0.06), transparent);
+  animation: scan-sweep 7s linear infinite;
+}
+@keyframes scan-sweep {
+  0% { top: -140px; }
+  100% { top: 100%; }
+}
+
+/* corner-bracket HUD framing, applied via class on glass panels */
+.hud-frame { position: relative; }
+.hud-frame::before, .hud-frame::after,
+.hud-frame > .corner-tl, .hud-frame > .corner-br { display: none; }
+.hud-frame::before {
+  display: block;
+  content: ""; position: absolute; top: 0; left: 0; width: 10px; height: 10px;
+  border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); opacity: 0.75;
+}
+.hud-frame::after {
+  display: block;
+  content: ""; position: absolute; bottom: 0; right: 0; width: 10px; height: 10px;
+  border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); opacity: 0.75;
+}
+
+.glass {
+  background: var(--panel);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+/* ---------- landing ---------- */
+
+#landing-screen {
+  position: relative;
+  height: 100%;
+  display: flex; align-items: safe center; justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34,232,255,0.10) 0%, transparent 45%),
+    radial-gradient(circle at 85% 88%, rgba(255,61,104,0.08) 0%, transparent 45%),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--void) 100%);
+  overflow-y: auto;
+}
+.landing-card {
+  position: relative;
+  max-width: 460px;
+  padding: 32px 30px;
+  text-align: center;
+}
+.landing-glyph {
+  font-size: 2.2rem; color: var(--cyan);
+  text-shadow: 0 0 18px rgba(34,232,255,0.8);
+  margin-bottom: 10px;
+}
+.landing-kicker {
+  font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.18em;
+  color: var(--text-dim); margin-bottom: 14px;
+}
+.landing-card h1 {
+  font-family: var(--font-display); font-weight: 800; font-size: 1.5rem;
+  letter-spacing: 0.03em; margin: 0 0 10px; line-height: 1.3;
+}
+.landing-card h1 .accent { color: var(--cyan); text-shadow: 0 0 16px rgba(34,232,255,0.55); }
+.tagline { margin: 0 0 18px; color: var(--text-dim); font-size: 0.82rem; line-height: 1.5; }
+.tagline em { color: var(--cyan); font-style: normal; }
+
+.impact-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  margin-bottom: 8px;
+}
+.impact-stat {
+  background: rgba(34,232,255,0.05); border: 1px solid var(--border);
+  border-radius: 9px; padding: 9px 4px; text-align: center;
+}
+.impact-value { font-family: var(--font-mono); font-weight: 700; font-size: 1.05rem; color: var(--cyan); }
+.impact-label { font-size: 0.6rem; color: var(--text-dim); line-height: 1.3; margin-top: 3px; }
+.impact-source {
+  font-size: 0.66rem; color: var(--text-faint); line-height: 1.5; text-align: left;
+  margin: 0 0 18px;
+}
+.disclosure {
+  text-align: left;
+  font-size: 0.83rem; line-height: 1.55; color: #c3cfe3;
+  background: rgba(255, 176, 32, 0.06);
+  border: 1px solid rgba(255, 176, 32, 0.28);
+  border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 22px;
+}
+.disclosure strong { color: var(--amber); }
+#start-btn {
+  width: 100%; padding: 15px 16px; font-family: var(--font-display); font-weight: 700;
+  font-size: 0.88rem; letter-spacing: 0.06em;
+  background: linear-gradient(135deg, #0d3a4a, #124a5e);
+  color: var(--cyan); border: 1px solid var(--border-glow); border-radius: 10px; cursor: pointer;
+  box-shadow: 0 0 20px rgba(34,232,255,0.18), inset 0 1px 0 rgba(255,255,255,0.08);
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+#start-btn:hover { box-shadow: 0 0 32px rgba(34,232,255,0.35), inset 0 1px 0 rgba(255,255,255,0.1); transform: translateY(-1px); }
+.landing-note { font-size: 0.72rem; color: var(--text-faint); text-align: center; margin: 14px 0 0; }
+
+/* ---------- app shell (Waze-density: minimal persistent chrome, ---------- */
+/* ---------- everything else lives in the detail drawer) ------------------ */
+
+#app { position: relative; height: 100%; width: 100%; overflow: hidden; }
+#map { position: absolute; inset: 0; background: var(--void); transform-origin: 50% 50%; }
+
+/* Nav mode rotates the map container so the direction of travel points up.
+   A rotated rectangle leaves empty corners, so the container becomes a square
+   large enough that its inscribed area still covers the viewport at ANY angle:
+   the viewport diagonal is at most sqrt(2) x vmax, so 150vmax clears it. It's
+   centred on the viewport, which keeps the rotation centre and the visible
+   centre the same point -- what latLngFromScreen's inverse-rotation maths
+   assumes. #app clips the overflow. */
+#app.nav-mode #map {
+  inset: auto;
+  left: 50%; top: 50%;
+  width: 150vmax; height: 150vmax;
+  margin-left: -75vmax; margin-top: -75vmax;
+  transition: transform 0.3s linear;
+}
+/* Leaflet's own controls live inside the rotated container, so in nav mode
+   they'd sit at the corners of that oversized square -- far off screen, and
+   rotated. Hidden here; the OSM/CARTO credit they carry is duplicated
+   permanently in #disclosure-footer so attribution stays visible either way. */
+#app.nav-mode .leaflet-control-container { display: none; }
+
+/* Owns outer positioning for both #mini-topbar and #turn-banner -- normal
+   document flow inside one absolutely-positioned container, same pattern as
+   #bottom-stack, so the banner appearing/disappearing never has to guess
+   the topbar's height via a hand-tuned offset. */
+#top-stack {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+#mini-topbar {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+  background: linear-gradient(180deg, rgba(3,6,13,0.85) 0%, rgba(3,6,13,0.4) 70%, transparent 100%);
+}
+
+/* Reference: Waze's turn banner (icon + distance + street), restyled into
+   this app's dark-glass HUD instead of Waze's light card. */
+#turn-banner {
+  margin: 0 12px;
+  background: var(--panel-strong); border: 1px solid var(--border-glow); border-radius: 14px;
+  backdrop-filter: blur(16px);
+  padding: 10px 16px; display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 0 24px rgba(34,232,255,0.12), 0 8px 24px rgba(0,0,0,0.4);
+}
+#turn-icon {
+  flex-shrink: 0; width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.7rem; line-height: 1; color: var(--cyan);
+  text-shadow: 0 0 10px rgba(34,232,255,0.7);
+  transition: transform 0.3s ease;
+}
+#turn-distance { font-family: var(--font-mono); font-weight: 700; font-size: 1.2rem; color: var(--text); line-height: 1.2; }
+#turn-street { font-family: var(--font-body); font-size: 0.76rem; color: var(--text-dim); margin-top: 2px; }
+.brand-glyph { color: var(--cyan); font-size: 1.15rem; text-shadow: 0 0 10px rgba(34,232,255,0.8); }
+#status-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em;
+  color: var(--green);
+  background: rgba(34, 214, 138, 0.1);
+  border: 1px solid rgba(34, 214, 138, 0.4);
+  border-radius: 20px; padding: 4px 10px 4px 8px;
+  white-space: nowrap;
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+/* Reflects real geolocation state -- was static "LIVE" markup regardless of
+   whether a GPS fix had ever actually arrived, which is actively misleading
+   when location is denied/unavailable and nothing else on screen says so. */
+#status-pill.state-searching { color: var(--amber); background: rgba(255,176,32,0.1); border-color: rgba(255,176,32,0.4); }
+#status-pill.state-searching .status-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+#status-pill.state-nogps { color: var(--red); background: rgba(255,61,104,0.1); border-color: rgba(255,61,104,0.4); }
+#status-pill.state-nogps .status-dot { background: var(--red); box-shadow: 0 0 8px var(--red); animation: none; }
+/* Simulated position (demo drive) -- must never read as a live GPS fix. */
+#status-pill.state-simulated { color: var(--amber); background: rgba(255,176,32,0.1); border-color: rgba(255,176,32,0.45); }
+#status-pill.state-simulated .status-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+@keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+#playback-badge {
+  background: rgba(255, 176, 32, 0.12); color: var(--amber);
+  border: 1px solid rgba(255, 176, 32, 0.5);
+  border-radius: 20px;
+  padding: 4px 10px; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.04em;
+  font-weight: 700; white-space: nowrap;
+}
+/* Finished, not frozen -- a completed run used to look identical to a stall. */
+#playback-badge.arrived {
+  background: rgba(34, 214, 138, 0.14); color: var(--green);
+  border-color: rgba(34, 214, 138, 0.5);
+}
+
+/* 44px: the sole gateway to every other control in the app (route search,
+   demo mode, assistant, legend) -- was 36px, below the standard touch-target
+   minimum on the one button that gets tapped most, one-handed, while riding. */
+#menu-btn {
+  margin-left: auto;
+  width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+  background: var(--panel); border: 1px solid var(--border); color: var(--cyan);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  backdrop-filter: blur(14px);
+}
+.menu-glyph { font-size: 1.1rem; font-style: normal; }
+
+/* Bottom-anchored flowing column, same reasoning as the old top-stack: normal
+   document flow inside one absolutely-positioned container means whichever of
+   alert-banner / trip-bar / bottom-row are actually visible stack correctly
+   without hand-tuned pixel offsets between them. */
+/* bottom offset clears #disclosure-footer, which wraps to 2+ lines at almost
+   any realistic viewport width -- the footer's sentence is long enough that
+   it only fits on one line above roughly 900px wide, so this can't be tuned
+   for "desktop" vs "mobile"; it has to clear the wrapped (common) case by
+   default. */
+#bottom-stack {
+  position: absolute; left: 12px; right: 12px; bottom: 72px; z-index: 1000;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+#trip-bar {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  backdrop-filter: blur(14px);
+  padding: 9px 13px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column; gap: 8px;
+}
+#trip-bar-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+/* Live "on the way" readout -- routing.js rewrites this on every position
+   update (real GPS or demo) to "X km to go", not just the planned total. */
+#trip-bar #route-info { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text); font-weight: 500; }
+/* Was no way to cancel an active route at all once planned -- clearRoute()
+   existed (demo mode used it internally) but nothing user-facing called it. */
+/* The way into the close-up driving view -- deliberately the visually
+   loudest thing in the trip bar, since "how do I actually start navigating"
+   was the exact thing that wasn't discoverable before it existed. */
+#nav-toggle-btn {
+  flex-shrink: 0; margin-left: auto;
+  min-height: 40px; padding: 8px 18px; border-radius: 20px;
+  background: var(--cyan); color: #032830; border: none;
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.74rem; letter-spacing: 0.08em;
+  cursor: pointer; box-shadow: 0 0 16px rgba(34,232,255,0.45);
+}
+#nav-toggle-btn.active {
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); box-shadow: none;
+}
+
+#trip-clear-btn {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-dim);
+  font-size: 1.15rem; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+#trip-progress-track {
+  height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden;
+}
+#trip-progress-fill {
+  height: 100%; width: 0%; border-radius: 2px; background: var(--cyan);
+  box-shadow: 0 0 6px rgba(34,232,255,0.6);
+  transition: width 0.3s linear;
+}
+
+#bottom-row { display: flex; align-items: flex-end; justify-content: space-between; }
+
+#speed-badge {
+  width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+  background: var(--panel-strong); border: 1px solid var(--border-glow);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 0 20px rgba(34,232,255,0.15), 0 4px 14px rgba(0,0,0,0.4);
+}
+#speed-value { font-family: var(--font-mono); font-weight: 700; font-size: 1.25rem; color: var(--cyan); line-height: 1; }
+.speed-badge-unit { font-family: var(--font-mono); font-size: 0.5rem; color: var(--text-dim); }
+
+#recenter-btn {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(34,232,255,0.14); color: var(--cyan); border: 1px solid var(--border-glow);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 18px rgba(34,232,255,0.25), 0 4px 14px rgba(0,0,0,0.4);
+}
+/* Drawn in CSS rather than as a glyph: the old "◉" was cryptic, and the
+   standard "my location" ring-and-dot renders identically everywhere
+   instead of depending on font coverage. */
+.recenter-glyph { position: relative; width: 18px; height: 18px; display: block; }
+.recenter-glyph::before {
+  content: ""; position: absolute; inset: 2px;
+  border: 2px solid currentColor; border-radius: 50%;
+}
+.recenter-glyph::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 4px; height: 4px; margin: -2px 0 0 -2px;
+  background: currentColor; border-radius: 50%;
+}
+
+/* The one thing allowed to interrupt -- no position/offset of its own now,
+   just the first item in bottom-stack's flow. */
+#alert-banner {
+  background: rgba(41, 8, 16, 0.82);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 61, 104, 0.55);
+  border-radius: 12px;
+  padding: 13px 15px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  box-shadow: 0 0 26px rgba(255,61,104,0.22), 0 8px 24px rgba(0,0,0,0.4);
+}
+#alert-body { flex: 1; min-width: 200px; }
+#alert-text { font-size: 0.85rem; line-height: 1.4; color: #ffe4ea; }
+#alert-source { font-family: var(--font-mono); font-size: 0.65rem; line-height: 1.4; color: #d98fa0; margin-top: 6px; }
+/* min-height 44px on all three -- this row is the one place a rider has to
+   react and tap accurately *right now*, reacting to a live hazard, not a
+   button they can casually retry. Undersized targets matter more here than
+   almost anywhere else in the app. display:flex + align-items:center makes
+   the height reliable regardless of font metrics, rather than hoping padding
+   adds up to 44px on every platform's font rendering. */
+#alert-actions { display: flex; gap: 8px; }
+#alert-reroute-btn {
+  background: var(--red); color: #29040a; border: none; border-radius: 8px;
+  min-height: 44px; display: flex; align-items: center;
+  padding: 8px 16px; font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; font-weight: 700;
+  box-shadow: 0 0 14px rgba(255,61,104,0.4);
+}
+#alert-fix-btn {
+  background: var(--cyan); color: #032830; border: none; border-radius: 8px;
+  min-height: 44px; display: flex; align-items: center;
+  padding: 8px 16px; font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; font-weight: 700;
+  box-shadow: 0 0 14px rgba(34,232,255,0.4);
+}
+#alert-dismiss-btn {
+  background: transparent; color: #e8a9b6; border: 1px solid rgba(255,61,104,0.5);
+  border-radius: 8px; min-height: 44px; display: flex; align-items: center;
+  padding: 8px 16px; font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer;
+}
+
+#disclosure-footer {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 900;
+  background: rgba(3,6,13,0.94); border-top: 1px solid var(--border);
+  color: var(--text-faint); font-size: 0.66rem; text-align: center; padding: 7px 10px;
+  font-family: var(--font-mono);
+}
+
+/* ---------- detail drawer (everything that isn't glanceable) ---------- */
+
+#detail-drawer { position: absolute; inset: 0; z-index: 1250; }
+#detail-backdrop { position: absolute; inset: 0; background: rgba(3,6,13,0.72); backdrop-filter: blur(3px); }
+#detail-panel {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 82%;
+  background: var(--panel-strong); border-top: 1px solid var(--border-glow);
+  border-radius: 18px 18px 0 0;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; padding: 14px;
+}
+#detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
+#detail-close-btn {
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  width: 44px; height: 44px; border-radius: 8px; font-size: 1rem; line-height: 1; cursor: pointer;
+}
+#detail-body { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+
+#hud-cluster {
+  display: flex; width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.3);
+}
+.hud-stat {
+  flex: 1; text-align: center; padding: 9px 6px;
+  border-right: 1px solid var(--border);
+}
+.hud-stat:last-child { border-right: none; }
+.hud-stat label {
+  display: block; font-family: var(--font-mono); font-size: 0.56rem;
+  letter-spacing: 0.1em; color: var(--text-faint); margin-bottom: 2px;
+}
+.hud-value {
+  font-family: var(--font-mono); font-weight: 700; font-size: 1.05rem; color: var(--cyan);
+  white-space: nowrap;
+}
+.hud-value-text { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; }
+.hud-value-text.risk-low { color: var(--green); }
+.hud-value-text.risk-med { color: var(--amber); }
+.hud-value-text.risk-high { color: var(--red); text-shadow: 0 0 8px rgba(255,61,104,0.6); }
+
+#time-toggle {
+  display: flex; gap: 3px; width: 100%;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px;
+}
+#time-toggle button {
+  flex: 1; min-height: 40px;
+  background: transparent; border: none; color: var(--text-dim); padding: 8px 6px;
+  border-radius: 7px; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.03em;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+#time-toggle button.active {
+  background: rgba(34,232,255,0.15); color: var(--cyan);
+  box-shadow: inset 0 0 0 1px rgba(34,232,255,0.4);
+}
+
+#control-row { display: flex; gap: 8px; }
+#demo-mode-btn, #assistant-btn {
+  flex: 1; min-height: 44px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 8px; border-radius: 10px; font-family: var(--font-mono); font-size: 0.72rem;
+  letter-spacing: 0.03em; cursor: pointer;
+}
+.play-glyph { font-size: 0.6rem; color: var(--green); }
+#demo-mode-btn.active {
+  background: rgba(255, 176, 32, 0.15); border-color: rgba(255,176,32,0.55); color: var(--amber);
+}
+#demo-mode-btn.active .play-glyph { color: var(--amber); }
+
+#layer-row { display: flex; }
+#crash-points-btn {
+  flex: 1; min-height: 44px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 8px; border-radius: 10px; font-family: var(--font-mono); font-size: 0.72rem;
+  letter-spacing: 0.03em; cursor: pointer;
+}
+#crash-points-btn .play-glyph { color: #ff5c8a; }
+#crash-points-btn.active {
+  background: rgba(255, 92, 138, 0.15); border-color: rgba(255, 92, 138, 0.55); color: #ff9ab8;
+}
+.dot-crash { background: #ff5c8a; opacity: 0.75; }
+
+#route-panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px 12px;
+}
+.route-hint { font-size: 0.66rem; color: var(--text-faint); line-height: 1.4; margin-bottom: 8px; }
+.route-row { display: flex; gap: 6px; }
+#dest-input {
+  flex: 1; min-height: 44px;
+  background: rgba(3,6,13,0.6); border: 1px solid var(--border); color: var(--text);
+  border-radius: 7px; padding: 8px 10px; font-family: var(--font-mono); font-size: 0.76rem;
+}
+#dest-input::placeholder { color: var(--text-faint); }
+#dest-input:focus { outline: none; border-color: var(--border-glow); }
+#route-btn {
+  background: rgba(34,232,255,0.12); color: var(--cyan); border: 1px solid var(--border-glow);
+  border-radius: 7px; min-height: 44px; padding: 8px 16px; display: flex; align-items: center;
+  font-family: var(--font-mono); font-weight: 700;
+  font-size: 0.72rem; cursor: pointer;
+}
+#route-status { margin-top: 7px; font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-dim); }
+
+#event-log {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px 12px; display: flex; flex-direction: column;
+  max-height: 190px;
+}
+#event-log-list { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.event-log-empty { font-size: 0.7rem; color: var(--text-faint); font-style: italic; }
+.event-row {
+  display: flex; gap: 7px; align-items: baseline; font-size: 0.7rem; line-height: 1.4;
+  animation: event-in 0.25s ease-out;
+}
+@keyframes event-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.event-time { font-family: var(--font-mono); color: var(--text-faint); font-size: 0.62rem; flex-shrink: 0; }
+.event-text { color: var(--text-dim); }
+.event-row.sev-danger .event-text { color: var(--red); }
+.event-row.sev-warn .event-text { color: var(--amber); }
+.event-row.sev-info .event-text { color: var(--cyan); }
+
+#legend {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; font-size: 0.7rem; display: flex; flex-direction: column; gap: 6px;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; color: var(--text-dim); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.dot-user { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.dot-bot { background: transparent; border: 1.5px dashed var(--text-dim); }
+.dot-risk { background: var(--red); opacity: 0.75; }
+.dot-jam { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
+/* ---------- planner assistant modal ---------- */
+
+#assistant-modal { position: absolute; inset: 0; z-index: 1300; }
+#assistant-backdrop { position: absolute; inset: 0; background: rgba(3,6,13,0.72); backdrop-filter: blur(3px); }
+#assistant-panel {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(420px, calc(100% - 32px)); max-height: min(560px, calc(100% - 32px));
+  background: var(--panel-strong); border: 1px solid var(--border-glow); border-radius: 14px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 40px rgba(34,232,255,0.15), 0 20px 60px rgba(0,0,0,0.6);
+  display: flex; flex-direction: column; padding: 14px;
+}
+#assistant-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+#assistant-subtitle { font-size: 0.64rem; color: var(--text-faint); margin-top: 2px; max-width: 320px; line-height: 1.4; }
+#assistant-close-btn {
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  width: 44px; height: 44px; border-radius: 8px; font-size: 1rem; line-height: 1; cursor: pointer; flex-shrink: 0;
+}
+#assistant-log {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+  min-height: 120px; margin-bottom: 10px; padding-right: 2px;
+}
+.assistant-msg { font-size: 0.78rem; line-height: 1.5; padding: 8px 11px; border-radius: 10px; max-width: 92%; }
+.assistant-msg-user {
+  align-self: flex-end; background: rgba(34,232,255,0.14); color: var(--text);
+  border: 1px solid rgba(34,232,255,0.3);
+}
+.assistant-msg-bot {
+  align-self: flex-start; background: rgba(255,255,255,0.04); color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+#assistant-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.assistant-chip {
+  background: rgba(34,232,255,0.08); border: 1px solid var(--border);
+  color: var(--cyan); border-radius: 20px; padding: 6px 12px; font-size: 0.68rem;
+  font-family: var(--font-mono); cursor: pointer;
+}
+#assistant-input-row { display: flex; gap: 6px; }
+#assistant-input {
+  flex: 1; min-height: 44px; background: rgba(3,6,13,0.6); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 9px 11px; font-family: var(--font-body); font-size: 0.82rem;
+}
+#assistant-input:focus { outline: none; border-color: var(--border-glow); }
+#assistant-send-btn {
+  background: rgba(34,232,255,0.14); color: var(--cyan); border: 1px solid var(--border-glow);
+  border-radius: 8px; min-height: 44px; padding: 9px 16px; display: flex; align-items: center;
+  font-family: var(--font-mono); font-weight: 700;
+  font-size: 0.72rem; cursor: pointer;
+}
+
+/* ---------- narrow / phone viewports ---------- */
+
+@media (max-width: 480px) {
+  .impact-strip { grid-template-columns: repeat(2, 1fr); }
+
+  #event-log { max-height: 130px; }
+
+  /* #disclosure-footer wraps to 3 lines at the narrowest phone widths --
+     a bit more clearance than the general 72px baseline. */
+  #bottom-stack { bottom: 80px; }
+
+  /* The trip bar's three children compete for one row at phone width; the
+     START glyph's extra width was enough to wrap the distance/ETA text onto
+     a second line. Tightening the button (not shrinking the text) keeps the
+     readout on one line and the button comfortably above 44px tall. */
+  #nav-toggle-btn { padding: 8px 10px; letter-spacing: 0.02em; }
+  #trip-bar { padding: 9px 8px; }
+  #trip-bar-row { gap: 6px; }
+}
+
+/* ---------- Leaflet's own default (light-themed) chrome ---------- */
+/* Never restyled until now -- the attribution box, zoom buttons, and tooltip
+   bubble were still stock white-on-Leaflet-grey, which clashed with
+   everything else exactly like the bright OSM tiles did. */
+
+.hud-tooltip.leaflet-tooltip {
+  background: var(--panel-strong); color: var(--text);
+  border: 1px solid var(--border-glow); border-radius: 8px;
+  font-family: var(--font-body); font-size: 0.76rem; line-height: 1.45;
+  padding: 8px 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.hud-tooltip.leaflet-tooltip::before { border-top-color: var(--border-glow); }
+
+.leaflet-control-attribution {
+  background: rgba(3,6,13,0.75) !important; color: var(--text-faint) !important;
+  font-size: 0.62rem !important;
+}
+.leaflet-control-attribution a { color: var(--cyan) !important; }
+
+.leaflet-control-zoom a {
+  background: var(--panel-strong) !important; color: var(--cyan) !important;
+  border: 1px solid var(--border) !important;
+}
+.leaflet-control-zoom a:hover { background: rgba(34,232,255,0.15) !important; }
+
+/* ---------- map markers & risk zones ---------- */
+
+/* Leaflet positions markers via `transform: translate3d(...)` on this outer
+   div (see the className passed to L.divIcon in map.js) -- without this, each
+   position update snaps the marker instantly, which is a big part of why live
+   tracking didn't read as a GPS app. `!important` because Leaflet's own
+   `.leaflet-zoom-animated` rule (a *different* transition, for zoom only)
+   would otherwise fight this one for the same property. Scoped to the user
+   marker specifically so bot markers keep their own jerkier movement. */
+.user-marker-icon {
+  transition: transform 0.22s linear !important;
+}
+
+.user-icon-wrap { position: relative; width: 22px; height: 22px; }
+/* Reference: Waze's directional chevron instead of an omnidirectional dot --
+   rotates to the device's real compass heading (or, in demo mode, the
+   simulated vehicle's bearing) so the marker itself shows which way you're
+   actually facing, not just where you are. */
+.user-heading {
+  position: absolute; inset: 0;
+  transform: rotate(0deg); transform-origin: 50% 50%;
+  transition: transform 0.25s linear;
+}
+.user-chevron-outline, .user-chevron {
+  position: absolute; inset: 0;
+  /* Simple arrow/kite shape pointing "up" (0deg = north, matching compass
+     bearing's own clockwise convention -- map.js applies rotate() directly
+     with no sign-flipping needed). */
+  clip-path: polygon(50% 0%, 100% 100%, 50% 76%, 0% 100%);
+}
+.user-chevron-outline {
+  background: #fff;
+  transform: scale(1.28);
+}
+.user-chevron {
+  background: var(--cyan);
+  filter: drop-shadow(0 0 5px rgba(34,232,255,0.85));
+}
+.user-icon-ping {
+  position: absolute; inset: -6px; border-radius: 50%;
+  border: 2px solid var(--cyan);
+  animation: ping 1.8s cubic-bezier(0,0,0.2,1) infinite;
+}
+@keyframes ping {
+  0% { transform: scale(0.5); opacity: 0.9; }
+  75%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+.bot-icon {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(142, 163, 196, 0.55); border: 1px dashed #c9d6ea;
+}
+.bot-icon.slow { background: rgba(255, 176, 32, 0.65); border-color: var(--amber); }
+
+/* Marks the route's actual endpoint -- previously only the line itself
+   implied a destination, easy to lose track of on a long/winding route. */
+.dest-pin {
+  width: 16px; height: 16px; transform: rotate(-45deg); transform-origin: center;
+  border-radius: 50% 50% 50% 0;
+  background: var(--amber); border: 2px solid #2a1a00;
+  box-shadow: 0 0 8px 1px rgba(255,176,32,0.7);
+}
+
+/* Leaflet applies these classNames to the underlying SVG <path> for risk zones */
+.risk-zone { transition: fill-opacity 0.3s; }
+.leaflet-interactive.risk-zone-high {
+  animation: risk-pulse 2.2s ease-in-out infinite;
+}
+@keyframes risk-pulse {
+  0%, 100% { stroke-opacity: 0.85; }
+  50% { stroke-opacity: 0.35; }
+}

@@ -1,0 +1,535 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "source": "prasiswazah.csv (DAX 2026 Road Safety dataset)",
+    "metric": "score = share of vehicle records in this district+time bucket whose 'Type of Crash' is Fatal",
+    "unit_of_analysis": "vehicle record -- NOT a distinct crash event",
+    "status": "PLACEHOLDER -- NOT A VALIDATED RISK MODEL",
+    "disclaimer": "The source dataset's columns are independently shuffled: vehicles sharing a Report Number sit a median of 110km apart, 'Day' matches the weekday of 'Date of Report' only 15.9% of the time (chance = 14.3%), and Light Condition is independent of crash hour. Scores here span roughly 0.42-0.57 around a 51.9% base rate -- that spread is noise, not signal. Do not present these as findings; replace this file with a validated model before drawing any conclusion."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          101.906015,
+          3.518235
+        ]
+      },
+      "properties": {
+        "district": "Bentong",
+        "total_crashes": 232,
+        "radius_km": 11.5,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.5,
+            "n": 44,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.545,
+            "n": 88,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.594,
+            "n": 64,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.472,
+            "n": 36,
+            "top_factors": [],
+            "low_confidence": false
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          102.44951,
+          3.2663
+        ]
+      },
+      "properties": {
+        "district": "Bera",
+        "total_crashes": 95,
+        "radius_km": 10.6,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.368,
+            "n": 19,
+            "top_factors": [
+              "Dark Without Street Light"
+            ],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.556,
+            "n": 36,
+            "top_factors": [
+              "Dark With Street Light"
+            ],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.586,
+            "n": 29,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.364,
+            "n": 11,
+            "top_factors": [
+              "Dark Without Street Light"
+            ],
+            "low_confidence": true
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          101.38595,
+          4.47456
+        ]
+      },
+      "properties": {
+        "district": "Cameron Highlands",
+        "total_crashes": 99,
+        "radius_km": 10.6,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.571,
+            "n": 21,
+            "top_factors": [
+              "Dark Without Street Light"
+            ],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.472,
+            "n": 36,
+            "top_factors": [],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.357,
+            "n": 28,
+            "top_factors": [
+              "Rain"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.429,
+            "n": 14,
+            "top_factors": [],
+            "low_confidence": true
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          102.37201,
+          3.91881
+        ]
+      },
+      "properties": {
+        "district": "Jerantut",
+        "total_crashes": 213,
+        "radius_km": 11.4,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.56,
+            "n": 50,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.567,
+            "n": 67,
+            "top_factors": [],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.5,
+            "n": 80,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.562,
+            "n": 16,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          102.05079,
+          4.1784
+        ]
+      },
+      "properties": {
+        "district": "Kuala Lipis",
+        "total_crashes": 193,
+        "radius_km": 11.3,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.6,
+            "n": 45,
+            "top_factors": [
+              "Dark With Street Light"
+            ],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.514,
+            "n": 72,
+            "top_factors": [],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.6,
+            "n": 55,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.667,
+            "n": 21,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.322415,
+          3.796635
+        ]
+      },
+      "properties": {
+        "district": "Kuantan",
+        "total_crashes": 366,
+        "radius_km": 11.9,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.516,
+            "n": 93,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.556,
+            "n": 133,
+            "top_factors": [
+              "Dark Without Street Light"
+            ],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.472,
+            "n": 89,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.392,
+            "n": 51,
+            "top_factors": [
+              "Dark Without Street Light"
+            ],
+            "low_confidence": false
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          102.77977999999999,
+          3.57946
+        ]
+      },
+      "properties": {
+        "district": "Maran",
+        "total_crashes": 299,
+        "radius_km": 11.7,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.534,
+            "n": 58,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.459,
+            "n": 98,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.55,
+            "n": 100,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.581,
+            "n": 43,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.39093,
+          3.48852
+        ]
+      },
+      "properties": {
+        "district": "Pekan",
+        "total_crashes": 213,
+        "radius_km": 11.4,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.509,
+            "n": 53,
+            "top_factors": [],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.477,
+            "n": 65,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.631,
+            "n": 65,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.467,
+            "n": 30,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          101.85365999999999,
+          3.798025
+        ]
+      },
+      "properties": {
+        "district": "Raub",
+        "total_crashes": 164,
+        "radius_km": 11.1,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.568,
+            "n": 37,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.42,
+            "n": 50,
+            "top_factors": [
+              "Dark Without Street Light"
+            ],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.592,
+            "n": 49,
+            "top_factors": [
+              "Dark With Street Light"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.607,
+            "n": 28,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.47538,
+          2.7922
+        ]
+      },
+      "properties": {
+        "district": "Rompin",
+        "total_crashes": 660,
+        "radius_km": 12.5,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.448,
+            "n": 154,
+            "top_factors": [],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.529,
+            "n": 221,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.468,
+            "n": 186,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.545,
+            "n": 99,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          }
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          102.41203,
+          3.44515
+        ]
+      },
+      "properties": {
+        "district": "Temerloh",
+        "total_crashes": 466,
+        "radius_km": 12.1,
+        "risk_by_time": {
+          "morning": {
+            "score": 0.528,
+            "n": 108,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "afternoon": {
+            "score": 0.562,
+            "n": 153,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          },
+          "evening": {
+            "score": 0.497,
+            "n": 143,
+            "top_factors": [],
+            "low_confidence": false
+          },
+          "night": {
+            "score": 0.516,
+            "n": 62,
+            "top_factors": [
+              "High motorcycle involvement"
+            ],
+            "low_confidence": false
+          }
+        }
+      }
+    }
+  ]
+}
