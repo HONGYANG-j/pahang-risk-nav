@@ -12,7 +12,7 @@
      serve.py's no-cache headers solve this locally, but Pages is static
      hosting with no server-side control over response headers, so it needs
      its own cache-busting instead. -->
-<link rel="stylesheet" href="style.css?v=3" />
+<link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
 
@@ -165,6 +165,7 @@
 
         <div id="layer-row">
           <button id="crash-points-btn" title="Show the dataset's actual recorded crash coordinates, instead of only whole-district shading"><span class="play-glyph">&#9679;</span><span id="crash-points-label">Show crash locations</span></button>
+          <button id="density-model-btn" title="A real kernel density model fit to the verified crash coordinates -- shows hotspot shape within a district, not future prediction"><span class="play-glyph">&#9673;</span><span id="density-model-label">Show density model</span></button>
         </div>
 
         <!-- LIVE: real GPS only. START (trip bar) gives a close-up view that
@@ -209,6 +210,7 @@
           <div class="legend-item"><span class="dot dot-bot"></span> Simulated traffic</div>
           <div class="legend-item"><span class="dot dot-risk"></span> Historical risk zone (whole district)</div>
           <div class="legend-item"><span class="dot dot-crash"></span> Recorded crash location (real coords)</div>
+          <div class="legend-item"><span class="dot dot-density"></span> Density model (real, where crashes cluster)</div>
           <div class="legend-item"><span class="dot dot-jam"></span> Simulated jam (sandbox)</div>
         </div>
       </div>
@@ -241,6 +243,9 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-<script type="module" src="js/app.js?v=2"></script>
+<!-- Registers L.heatLayer -- renders the real density model (risk.js
+     loadDensityModel) as a smooth heatmap. Needs to load after leaflet.js. -->
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script type="module" src="js/app.js?v=3"></script>
 </body>
 </html>

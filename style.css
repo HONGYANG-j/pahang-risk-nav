@@ -491,8 +491,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    to make that distinction impossible to miss. */
 .panel-subtitle { font-size: 0.6rem; letter-spacing: 0; color: var(--text-faint); text-transform: none; font-family: var(--font-body); opacity: 0.85; }
 
-#layer-row { display: flex; }
-#crash-points-btn {
+#layer-row { display: flex; gap: 8px; }
+#crash-points-btn, #density-model-btn {
   flex: 1; min-height: 44px;
   display: flex; align-items: center; justify-content: center; gap: 6px;
   background: var(--panel); border: 1px solid var(--border); color: var(--text);
@@ -504,6 +504,17 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: rgba(255, 92, 138, 0.15); border-color: rgba(255, 92, 138, 0.55); color: #ff9ab8;
 }
 .dot-crash { background: #ff5c8a; opacity: 0.75; }
+
+/* Cyan/amber/red, matching leaflet.heat's gradient in risk.js's
+   loadDensityModel -- so the legend dot actually looks like the layer it
+   describes instead of an arbitrary colour. */
+#density-model-btn .play-glyph { color: var(--amber); }
+#density-model-btn.active {
+  background: rgba(255, 176, 32, 0.15); border-color: rgba(255, 176, 32, 0.55); color: var(--amber);
+}
+.dot-density {
+  background: linear-gradient(135deg, #22e8ff, var(--amber), #ff3d68);
+}
 
 #route-panel {
   background: var(--panel); border: 1px solid var(--border); border-radius: 12px;

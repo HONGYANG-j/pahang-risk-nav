@@ -124,6 +124,49 @@ export function setCrashPointsVisible(on) {
   State.crashPointsVisible = on;
 }
 
+/**
+ * Draws a REAL kernel density estimate over the verified crash coordinates --
+ * genuine unsupervised ML fit to data that survived the shuffling check,
+ * unlike the district shading above (renderRiskLayer), which is a coarse
+ * count aggregate standing in for a model that doesn't exist yet. This one
+ * shows actual hotspot SHAPE within a district instead of one flat colour
+ * across it, and needs no trained classifier from the modelling teammate --
+ * see data/build_density_model.py for the method (2D Gaussian KDE, local
+ * equirectangular projection so the kernel is circular in real metres, not
+ * skewed by latitude, clipped to real Pahang district polygons).
+ *
+ * Strictly a map of WHERE past crashes cluster -- never a prediction of
+ * future crashes or of severity/cause. The columns that would support a
+ * cause-and-effect claim (weather, road type, driver factors...) are the
+ * shuffled ones; this model only ever sees verified coordinates.
+ */
+export async function loadDensityModel() {
+  const res = await fetch("data/density_model.json");
+  const data = await res.json();
+  // [lat, lng, intensity] tuples, exactly what L.heatLayer expects.
+  const points = data.cells.map((c) => [c[0], c[1], c[2]]);
+  State.densityLayer = L.heatLayer(points, {
+    radius: 26,
+    blur: 22,
+    maxZoom: 13,
+    minOpacity: 0.15,
+    // Cyan -> amber -> red: the same low/caution/danger language the rest of
+    // the HUD already uses (status pill, risk-zone shading), rather than a
+    // generic heatmap default that wouldn't read as part of the same app.
+    gradient: { 0.2: "#0f8fae", 0.45: "#22e8ff", 0.7: "#ffb020", 1.0: "#ff3d68" },
+  });
+  State.densityCells = data.cells.length;
+  return State.densityLayer;
+}
+
+/** Toggles the density-model layer. */
+export function setDensityModelVisible(on) {
+  if (!State.densityLayer || !State.map) return;
+  if (on) State.densityLayer.addTo(State.map);
+  else State.densityLayer.remove();
+  State.densityVisible = on;
+}
+
 export function renderRiskLayer() {
   if (State.riskLayerGroup) {
     State.riskLayerGroup.remove();

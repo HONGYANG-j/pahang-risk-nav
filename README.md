@@ -104,6 +104,20 @@ drawer — see `data/build_crash_points.py`. Density is deliberately the only
 readable signal: 2,288 points across the whole state, with the busiest ~2 km
 cell holding just 7, is too thin to claim individual hotspots.
 
+Those verified coordinates are also enough to fit a real, honest model: a 2D
+Gaussian kernel density estimate (`scipy.stats.gaussian_kde`, Scott's rule
+bandwidth) computed in a local equirectangular projection (so the kernel is
+circular in real metres, not skewed by latitude), evaluated on an 800 m grid,
+and clipped to the real Pahang district polygons — see
+`data/build_density_model.py`. The app draws it via **Show density model** in
+the drawer, as a smooth heatmap layered over (or instead of) the flat
+district shading. It's unsupervised — no trained classifier, no teammate
+handoff needed — and it only ever sees the verified coordinates, never the
+shuffled outcome/factor columns, so it answers "where do past crashes
+cluster" and nothing about severity, cause, or future risk. That distinction
+is stated in the model's own metadata and worth repeating in the pitch: this
+is real density estimation on real locations, not a prediction.
+
 What survives: single-column descriptive statistics, **and the crash
 coordinates**. What does not: correlations, cross-tabs, and predictions. The likely cause is deliberate anonymisation by the
 organisers (real MIROS data with coordinates is sensitive) — worth asking them
@@ -129,6 +143,9 @@ placeholder everywhere it appears, rather than presenting it as a finding.
 - **Placeholder, not a model:** the coloured risk zones. Computed from
   `prasiswazah.csv`, which is synthetic (above) — they demonstrate the interface,
   not a validated risk estimate.
+- **Real:** the density model (**Show density model**). A genuine KDE fit to
+  the verified crash coordinates — see above. Real methodology, but still
+  only "where crashes cluster", never a prediction or a severity claim.
 - **Simulated:** the other "bot" vehicles and the jams they form. They exist to
   demonstrate the crowdsourced-detection concept visually, since a new app has
   no real user base yet. They are never presented as real live users — the UI

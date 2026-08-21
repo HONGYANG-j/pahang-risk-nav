@@ -15,6 +15,10 @@ export const State = {
   crashPointsCount: 0,
   crashPointsVisible: false,
 
+  densityLayer: null,   // real KDE hotspot model over the crash coordinates (see risk.js loadDensityModel) -- genuine density estimation, not the placeholder district shading
+  densityCells: 0,
+  densityVisible: false,
+
   bots: [],             // array of bot objects, see bots.js
   activeJams: [],        // array of {lat, lng, botCount}
 

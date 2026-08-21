@@ -1,6 +1,6 @@
 import { State } from "./state.js";
 import { initMap, startGeolocation, setFollow, enterNavMode, exitNavMode, latLngFromScreen, updateUserPosition } from "./map.js";
-import { loadRiskLayer, setTimeBucket, loadCrashPoints, setCrashPointsVisible } from "./risk.js";
+import { loadRiskLayer, setTimeBucket, loadCrashPoints, setCrashPointsVisible, loadDensityModel, setDensityModelVisible } from "./risk.js";
 import { planRoute, clearRoute } from "./routing.js";
 import { spawnBots } from "./bots.js";
 import { initAlerts } from "./alerts.js";
@@ -161,6 +161,42 @@ async function start() {
     crashLabel.textContent = "Hide crash locations";
     logEvent(
       `Showing ${State.crashPointsCount} recorded crash locations — real coordinates, no severity attached`,
+      "info"
+    );
+  });
+
+  // Same lazy-load-on-first-toggle pattern as crash points, and the same
+  // reason: no point fetching/computing anything for a layer most sessions
+  // never open.
+  const densityBtn = document.getElementById("density-model-btn");
+  const densityLabel = document.getElementById("density-model-label");
+  let densityLoading = false;
+  densityBtn.addEventListener("click", async () => {
+    if (densityLoading) return;
+    if (State.densityVisible) {
+      setDensityModelVisible(false);
+      densityBtn.classList.remove("active");
+      densityLabel.textContent = "Show density model";
+      return;
+    }
+    if (!State.densityLayer) {
+      densityLoading = true;
+      densityLabel.textContent = "Loading…";
+      try {
+        await loadDensityModel();
+      } catch (e) {
+        densityLabel.textContent = "Show density model";
+        logEvent(`Could not load density model: ${e.message}`, "warn");
+        return;
+      } finally {
+        densityLoading = false;
+      }
+    }
+    setDensityModelVisible(true);
+    densityBtn.classList.add("active");
+    densityLabel.textContent = "Hide density model";
+    logEvent(
+      `Showing density model — real kernel density estimate over ${State.densityCells} grid cells, not a prediction of future crashes`,
       "info"
     );
   });
