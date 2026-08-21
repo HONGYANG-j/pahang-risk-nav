@@ -477,7 +477,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 #control-row { display: flex; gap: 8px; }
-#demo-mode-btn, #assistant-btn {
+#assistant-btn {
   flex: 1; min-height: 44px;
   display: flex; align-items: center; justify-content: center; gap: 6px;
   background: var(--panel); border: 1px solid var(--border); color: var(--text);
@@ -485,10 +485,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   letter-spacing: 0.03em; cursor: pointer;
 }
 .play-glyph { font-size: 0.6rem; color: var(--green); }
-#demo-mode-btn.active {
-  background: rgba(255, 176, 32, 0.15); border-color: rgba(255,176,32,0.55); color: var(--amber);
-}
-#demo-mode-btn.active .play-glyph { color: var(--amber); }
+
+/* Sits next to a panel-title to name what's REAL about that panel vs the
+   other one -- the whole point of splitting live/demo into two panels was
+   to make that distinction impossible to miss. */
+.panel-subtitle { font-size: 0.6rem; letter-spacing: 0; color: var(--text-faint); text-transform: none; font-family: var(--font-body); opacity: 0.85; }
 
 #layer-row { display: flex; }
 #crash-points-btn {
@@ -524,6 +525,39 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   font-size: 0.72rem; cursor: pointer;
 }
 #route-status { margin-top: 7px; font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-dim); }
+
+/* Amber accent throughout (border, pin buttons, the Start Demo Drive button)
+   -- same colour the "×20 playback" badge and simulated-position pill
+   already use for "this is simulated", so the whole panel reads as the
+   simulated one at a glance, not just via its title text. */
+#demo-panel {
+  background: var(--panel); border: 1px solid rgba(255, 176, 32, 0.3); border-radius: 12px;
+  padding: 10px 12px;
+}
+.demo-point-row { display: flex; gap: 6px; margin-bottom: 6px; }
+#demo-start-input, #demo-dest-input {
+  flex: 1; min-height: 44px;
+  background: rgba(3,6,13,0.6); border: 1px solid var(--border); color: var(--text);
+  border-radius: 7px; padding: 8px 10px; font-family: var(--font-mono); font-size: 0.76rem;
+}
+#demo-start-input::placeholder, #demo-dest-input::placeholder { color: var(--text-faint); }
+#demo-start-input:focus, #demo-dest-input:focus { outline: none; border-color: rgba(255,176,32,0.6); }
+#demo-start-pin-btn, #demo-dest-pin-btn {
+  flex-shrink: 0; width: 44px; min-height: 44px; border-radius: 7px;
+  background: rgba(255,176,32,0.1); border: 1px solid rgba(255,176,32,0.4); color: var(--amber);
+  font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+#demo-drive-btn {
+  width: 100%; min-height: 44px; margin-top: 2px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(255,176,32,0.12); border: 1px solid rgba(255,176,32,0.5); color: var(--amber);
+  border-radius: 10px; font-family: var(--font-mono); font-weight: 700; font-size: 0.74rem;
+  letter-spacing: 0.03em; cursor: pointer;
+}
+#demo-drive-btn .play-glyph { color: var(--amber); }
+#demo-drive-btn.active { background: rgba(255,176,32,0.22); box-shadow: 0 0 14px rgba(255,176,32,0.25); }
+#demo-status { margin-top: 7px; font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-dim); }
 
 #event-log {
   background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
@@ -636,6 +670,20 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   padding: 8px 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
 }
 .hud-tooltip.leaflet-tooltip::before { border-top-color: var(--border-glow); }
+
+/* Nav mode rotates the whole map container heading-up, which took every
+   tooltip's TEXT with it -- upside-down facing south, reported as "the place
+   name etc is upside down". Can't counter-rotate .leaflet-tooltip itself:
+   Leaflet already owns its transform (inline translate3d for positioning),
+   so a competing rule here would lose to it. Each tooltip's real content is
+   wrapped in its own inner .tt-upright element instead (risk.js, routing.js)
+   -- purely local, doesn't touch Leaflet's positioning transform at all. See
+   map.js's setMapRotation for where --map-rotation actually gets set. */
+.tt-upright {
+  display: inline-block;
+  transform: rotate(calc(var(--map-rotation, 0) * -1deg));
+  transition: transform 0.3s linear;
+}
 
 .leaflet-control-attribution {
   background: rgba(3,6,13,0.75) !important; color: var(--text-faint) !important;

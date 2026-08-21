@@ -260,13 +260,25 @@ function finishDemoDrive(pos) {
 }
 
 /**
+ * Starts a simulated drive. This is the ONLY way a demo drive begins now --
+ * previously the trip bar's live-mode START button would also silently fall
+ * into simulating whatever route was planned if the device was stationary,
+ * which blurred live and demo into one another (reported as confusing) and
+ * meant EXIT/START had to guess which one it was undoing. Live mode's START
+ * is real-GPS-only now; this is the deliberate, separate way to run a demo.
+ *
  * @param {object} opts
- * @param {boolean} opts.useExistingRoute drive the route the user already
- *   planned instead of picking a demo destination. This is what the trip
- *   bar's START button uses: pressing "start navigating" and then watching a
- *   drive to somewhere you never asked for would be its own bug.
+ * @param {{lat:number,lng:number}|null} opts.start explicit start point --
+ *   from the Demo Drive panel's own start field (map-tap or typed), NOT
+ *   State.userPos. Falls back to the live position (or a Pahang default) only
+ *   if the user left it blank, so "add a starting location for demo mode"
+ *   actually means what it says rather than always silently using wherever
+ *   live GPS (or its own map-centre fallback) happens to be.
+ * @param {{lat:number,lng:number}|null} opts.dest explicit destination --
+ *   same idea. Leaving it blank keeps the original "auto-pick a nearby
+ *   high-risk district" convenience.
  */
-export async function startDemoMode({ useExistingRoute = false } = {}) {
+export async function startDemoMode({ start: chosenStart = null, dest: chosenDest = null } = {}) {
   if (State.demoMode) return;
   State.demoMode = true;
   stopGeolocation();
@@ -277,18 +289,13 @@ export async function startDemoMode({ useExistingRoute = false } = {}) {
     await spawnBots();
   }
 
-  if (useExistingRoute && State.route.coords?.length) {
-    const existing = State.route.coords;
-    demoMaxDistanceM = Infinity; // drive the user's whole route, not a 12 km slice of it
-    updateUserPosition(existing[0][0], existing[0][1], 0, undefined, "demo");
-    enterNavMode();
-    animateAlongPath(existing);
-    return;
-  }
-  demoMaxDistanceM = MAX_DEMO_DISTANCE_M;
-
-  const start = State.userPos || { lat: 3.8077, lng: 103.326 };
-  const target = pickNearbyHighRiskFeature(start, State.timeBucket) || {
+  const start = chosenStart || State.userPos || { lat: 3.8077, lng: 103.326 };
+  // An explicitly chosen destination is deliberate -- drive it in full,
+  // however long it is, the same reasoning as an explicitly planned live
+  // route. Auto-picked ones stay capped so an unlucky far-off pick can't
+  // produce a multi-minute recording.
+  demoMaxDistanceM = chosenDest ? Infinity : MAX_DEMO_DISTANCE_M;
+  const target = chosenDest || pickNearbyHighRiskFeature(start, State.timeBucket) || {
     lat: start.lat + 0.05,
     lng: start.lng + 0.03,
   };
@@ -300,20 +307,29 @@ export async function startDemoMode({ useExistingRoute = false } = {}) {
 
   let coords;
   try {
-    // Probe the road toward the chosen district, then set the actual demo
-    // destination one demo-length along it. Routing straight to a district
-    // 100km+ away would print "172 km, ~136 min" on screen while we only ever
-    // drive the first stretch -- this keeps the displayed route honest and
-    // equal to the drive performed.
-    const [probe] = await fetchRoutes(start, target);
-    const trimmed = truncateToDistance(
-      probe.coords,
-      cumulativeDistances(probe.coords),
-      MAX_DEMO_DISTANCE_M
-    );
-    const endpoint = trimmed[trimmed.length - 1];
-    const { route } = await planRoute({ lat: endpoint[0], lng: endpoint[1] });
-    coords = route.coords;
+    if (chosenDest) {
+      // A real destination the user actually asked for -- route straight to
+      // it, no truncate-and-replan probe needed (that dance exists only to
+      // keep an AUTO-picked, possibly-distant target's displayed distance
+      // honest against the drive actually performed).
+      const { route } = await planRoute(target);
+      coords = route.coords;
+    } else {
+      // Probe the road toward the chosen district, then set the actual demo
+      // destination one demo-length along it. Routing straight to a district
+      // 100km+ away would print "172 km, ~136 min" on screen while we only ever
+      // drive the first stretch -- this keeps the displayed route honest and
+      // equal to the drive performed.
+      const [probe] = await fetchRoutes(start, target);
+      const trimmed = truncateToDistance(
+        probe.coords,
+        cumulativeDistances(probe.coords),
+        MAX_DEMO_DISTANCE_M
+      );
+      const endpoint = trimmed[trimmed.length - 1];
+      const { route } = await planRoute({ lat: endpoint[0], lng: endpoint[1] });
+      coords = route.coords;
+    }
   } catch (e) {
     console.warn("Demo route planning failed, using straight line fallback:", e.message);
     coords = [

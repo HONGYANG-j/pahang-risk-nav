@@ -99,48 +99,32 @@ async function start() {
     logEvent("Route cleared", "info");
   });
 
-  let navStartedDemo = false;
-  document.getElementById("nav-toggle-btn").addEventListener("click", async () => {
+  // Live and demo used to share this one button in a way that depended on
+  // WHICH one started it (a `navStartedDemo` flag) -- so EXIT while a demo
+  // launched from the drawer was running left it going in the background,
+  // camera detached: "even when i pressed exit, the navigation kept on
+  // running". map.js's syncNavButton now derives the label purely from
+  // (demoMode, navMode), and this handler mirrors that same precedence, so
+  // the label and the action can never disagree with each other or with
+  // what's actually running.
+  document.getElementById("nav-toggle-btn").addEventListener("click", () => {
+    if (State.demoMode) {
+      stopDemoMode();
+      logEvent("Demo drive stopped", "info");
+      return;
+    }
     if (State.navMode) {
-      // Only tear down the simulated drive if pressing START is what began it
-      // -- otherwise EXIT would silently kill a demo the user started from the
-      // drawer and expected to keep running.
-      if (navStartedDemo && State.demoMode) {
-        stopDemoMode();
-        syncDemoButton(false);
-        navStartedDemo = false;
-      } else {
-        exitNavMode();
-      }
+      exitNavMode();
       logEvent("Navigation view closed — showing whole route", "info");
       return;
     }
-
+    // Live mode only: your real GPS position, close-up. No more silent
+    // fallback to simulating a route if the device happens to be stationary
+    // -- that was the live/demo blurring this button is now free of. Want to
+    // watch a drive play out? Use Demo Drive, below.
     enterNavMode();
-    // On a stationary device there is nothing for the camera to follow, so
-    // "START" appeared to do nothing at all beyond zooming in -- the whole
-    // point of pressing it is to see the drive. If we're not actually moving
-    // and a route is planned, drive it in simulation, clearly badged as
-    // playback rather than passed off as a real trip.
-    if (State.route.coords?.length && !State.demoMode && State.userSpeedKmh < 1) {
-      navStartedDemo = true;
-      syncDemoButton(true);
-      logEvent("Navigation started — simulating this drive (not real movement)", "info");
-      await startDemoMode({ useExistingRoute: true });
-    } else {
-      logEvent("Navigation started", "info");
-    }
+    logEvent("Navigation started", "info");
   });
-
-  /** Keeps the drawer's demo button honest when a simulated drive is started
-   * or stopped from the trip bar instead of from the drawer itself. */
-  function syncDemoButton(active) {
-    const btn = document.getElementById("demo-mode-btn");
-    const label = document.getElementById("demo-btn-label");
-    if (!btn || !label) return;
-    btn.classList.toggle("active", active);
-    label.textContent = active ? "Stop demo" : "Demo mode";
-  }
 
   document.getElementById("recenter-btn").addEventListener("click", () => setFollow(true));
 
@@ -188,45 +172,98 @@ async function start() {
   document.getElementById("detail-close-btn").addEventListener("click", closeDrawer);
   document.getElementById("detail-backdrop").addEventListener("click", closeDrawer);
 
-  // Typing a raw "lat,lng" destination is close to unusable -- nobody knows
-  // their destination's coordinates. Tapping the map is the natural way to
-  // pick a point, and needs no geocoding backend: it just fills the same
-  // input the manual flow already used, so routing itself is unchanged.
-  // Leaflet only fires `click` on an actual tap/release, not mid-drag, so
-  // this doesn't fight with panning the map.
+  // Typing a raw "lat,lng" is close to unusable -- nobody knows a point's
+  // coordinates. Tapping the map is the natural way to pick one, and needs no
+  // geocoding backend: it just fills a text input, so routing/demo-planning
+  // themselves are unchanged. Leaflet only fires `click` on an actual
+  // tap/release, not mid-drag, so this doesn't fight with panning the map.
+  //
+  // One tap handler now serves three different fields (live route
+  // destination, demo start, demo destination) rather than always meaning
+  // "set the live destination" -- `armedField` tracks which input the NEXT
+  // tap should fill, set by pressing a field's own pin button, and always
+  // resets back to the live-route default afterward so a stray tap can't
+  // silently overwrite a demo field the user isn't looking at.
+  let armedField = "route-dest";
+  function armField(name) {
+    armedField = name;
+    closeDrawer(); // so the map is actually visible to tap
+  }
+
   State.map.on("click", (e) => {
     // Not e.latlng: Leaflet derives that from getBoundingClientRect(), which
     // is the axis-aligned bounding box once nav mode rotates the container --
     // so it silently returns the wrong point there. latLngFromScreen undoes
     // the rotation properly (and is identical to e.latlng when unrotated).
     const { lat, lng } = latLngFromScreen(e.originalEvent.clientX, e.originalEvent.clientY);
-    document.getElementById("dest-input").value = `${lat.toFixed(5)},${lng.toFixed(5)}`;
-    syncGoEnabled(); // programmatic .value assignment doesn't fire `input`
-    document.getElementById("route-status").textContent = "Destination set from map tap — tap GO to route there.";
-    openDrawer();
-    document.getElementById("route-panel").scrollIntoView({ block: "nearest" });
+    const value = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    const field = armedField;
+    armedField = "route-dest";
+
+    if (field === "demo-start") {
+      document.getElementById("demo-start-input").value = value;
+      document.getElementById("demo-status").textContent = "Start set from map tap.";
+      openDrawer();
+      document.getElementById("demo-panel").scrollIntoView({ block: "nearest" });
+    } else if (field === "demo-dest") {
+      document.getElementById("demo-dest-input").value = value;
+      document.getElementById("demo-status").textContent = "Destination set from map tap.";
+      openDrawer();
+      document.getElementById("demo-panel").scrollIntoView({ block: "nearest" });
+    } else {
+      document.getElementById("dest-input").value = value;
+      syncGoEnabled(); // programmatic .value assignment doesn't fire `input`
+      document.getElementById("route-status").textContent = "Destination set from map tap — tap GO to route there.";
+      openDrawer();
+      document.getElementById("route-panel").scrollIntoView({ block: "nearest" });
+    }
   });
+
+  document.getElementById("demo-start-pin-btn").addEventListener("click", () => armField("demo-start"));
+  document.getElementById("demo-dest-pin-btn").addEventListener("click", () => armField("demo-dest"));
+
+  /** Parses "lat,lng" -> {lat,lng}, or null for a blank field (both fields
+   * are optional: startDemoMode() falls back to live position / an
+   * auto-picked district exactly like the original one-button demo did). */
+  function parseLatLng(raw, label, statusEl) {
+    const trimmed = raw.trim();
+    if (!trimmed) return { ok: true, value: null };
+    const parts = trimmed.split(",").map((s) => parseFloat(s.trim()));
+    if (parts.length !== 2 || parts.some(Number.isNaN)) {
+      statusEl.textContent = `${label} must be lat,lng`;
+      return { ok: false, value: null };
+    }
+    return { ok: true, value: { lat: parts[0], lng: parts[1] } };
+  }
 
   // startDemoMode is async (it fetches routes), so without a guard a fast
   // double-click can start a second run on top of the first.
   let demoBusy = false;
-  document.getElementById("demo-mode-btn").addEventListener("click", async (e) => {
+  document.getElementById("demo-drive-btn").addEventListener("click", async () => {
     if (demoBusy) return;
+    const status = document.getElementById("demo-status");
+
+    if (State.demoMode) {
+      stopDemoMode();
+      logEvent("Demo drive stopped", "info");
+      return;
+    }
+
+    const start = parseLatLng(document.getElementById("demo-start-input").value, "Start", status);
+    if (!start.ok) return;
+    const dest = parseLatLng(document.getElementById("demo-dest-input").value, "Destination", status);
+    if (!dest.ok) return;
+
     demoBusy = true;
-    const btn = e.currentTarget;
-    const label = document.getElementById("demo-btn-label");
+    status.textContent = "Starting demo drive…";
     try {
-      if (!State.demoMode) {
-        label.textContent = "Stop demo";
-        btn.classList.add("active");
-        logEvent("Demo mode started — scripted scenario running", "info");
-        await startDemoMode();
-      } else {
-        label.textContent = "Demo mode";
-        btn.classList.remove("active");
-        logEvent("Demo mode stopped — live GPS resumed", "info");
-        stopDemoMode();
-      }
+      logEvent("Demo drive started — simulated, not real movement", "info");
+      await startDemoMode({ start: start.value, dest: dest.value });
+      status.textContent = "";
+      closeDrawer(); // matches the live route panel: once it's running, get out of the way
+    } catch (e) {
+      status.textContent = `Could not start: ${e.message}`;
+      logEvent(`Demo drive failed to start: ${e.message}`, "warn");
     } finally {
       demoBusy = false;
     }

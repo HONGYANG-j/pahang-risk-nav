@@ -35,6 +35,33 @@ socioeconomic (OpenDOSM) risk overlay, hyper-local hotspot data (monsoon
 flood zones, informal roads), and anything presented as a roadmap slide,
 which belongs in the pitch deck, not the running app.
 
+## Live vs. Demo — two fully separate modes
+
+These used to share one "START" button, which silently fell into simulating a
+route if the device happened to be stationary. Reported back as confusing (and
+as a real bug: pressing EXIT while a demo launched from the drawer was running
+left it going in the background) — so they're now two independent panels with
+no shared state beyond the map itself:
+
+- **Route (live)** — real GPS only. Plan a destination, then **START** on the
+  trip bar gives a close-up, heading-up driving view that follows your actual
+  device position. If you're not moving, the view just doesn't move — it will
+  never silently switch to a simulation.
+- **Demo Drive** — fully simulated, never touches real GPS. Its own start
+  *and* destination (each settable by tapping 📍 then the map, or typing
+  coordinates; both optional — blank defaults to your live position and a
+  nearby high-risk district, the original one-click behaviour). Badged
+  **SIMULATED DRIVE** throughout, and the status pill reads **SIMULATED**
+  (not LIVE) while one is running.
+
+The trip bar's button is shared between them but always tells the truth about
+which one is active: **▶ START** (live, nothing running) → **✕ EXIT** (in the
+live nav view) or **■ STOP** (a demo drive is running) — driven purely by
+`(State.demoMode, State.navMode)`, never by which control was pressed to get
+there. Pressing it during a demo drive always fully stops it: the animation,
+the camera, and the badge together, whether the drive was started from the
+trip bar or the Demo Drive panel.
+
 ## ⚠ The supplied dataset is synthetic — read this first
 
 `prasiswazah.csv` does **not** contain authentic incident-level crash data. Its
@@ -123,17 +150,17 @@ Needs Python installed (get it from [python.org/downloads](https://www.python.or
 If `run.bat` prints an error about Python not being found, that's the fix;
 after installing, double-click `run.bat` again.
 
-Once it opens, there are two independent ways to use it:
+Once it opens, there are two independent ways to use it (see "Live vs. Demo"
+above):
 
-- **Live** — allow location access; the map follows your device's real GPS.
-- **Manual, no GPS needed** — set a destination either by tapping a point on
-  the map (opens the drawer with it pre-filled — just tap GO) or by typing a
-  `lat,lng` pair, then tap GO. Works with or without a live fix: if you don't
-  have one, it plans from the map's current centre instead and says so in the
-  event log. Either way, press **START** on the trip bar afterward — if the
-  device isn't actually moving, it simulates driving the route you just
-  picked (clearly badged **SIMULATED DRIVE**), which is also how to explore
-  the app without a phone at all.
+- **Live** — allow location access, plan a destination in the **Route**
+  panel (tap the map or type `lat,lng`, works with or without a fix), then
+  **START** for the close-up driving view of your real position.
+- **No phone / not actually moving? Use Demo Drive** — its own panel, its own
+  optional start + destination (blank defaults to your position and a nearby
+  high-risk district), press **Start Demo Drive**. This is the way to explore
+  the app or preview a route without a real device — Live's START intentionally
+  no longer falls into this on its own.
 
 ### Command-line way (if you're already in a terminal)
 
@@ -350,14 +377,27 @@ the vehicle magnifies where you *are*, while a nav view shows where you're
   road you're about to drive fills the screen and the vehicle rides low
   (measured 136 px below centre at desktop, 107 px at phone size).
 
-Rotation breaks one thing that has to be fixed alongside it: `e.latlng` from a
-map click. Leaflet derives it via `getBoundingClientRect()`, which for a rotated
-element is the axis-aligned bounding box, not the real untransformed box — so
-tap-to-set-destination would silently return the wrong point. `latLngFromScreen()`
-rotates the click back by the inverse angle about the container centre (a fixed
-point under rotation) to recover the true container point; verified by round-trip
-(screen → latlng → screen) to sub-pixel accuracy both rotated and unrotated, and
-to be bit-identical to `e.latlng` when unrotated.
+Rotation breaks two things that have to be fixed alongside it. First,
+`e.latlng` from a map click. Leaflet derives it via `getBoundingClientRect()`,
+which for a rotated element is the axis-aligned bounding box, not the real
+untransformed box — so tap-to-set-destination would silently return the wrong
+point. `latLngFromScreen()` rotates the click back by the inverse angle about
+the container centre (a fixed point under rotation) to recover the true
+container point; verified by round-trip (screen → latlng → screen) to
+sub-pixel accuracy both rotated and unrotated, and to be bit-identical to
+`e.latlng` when unrotated.
+
+Second, every tooltip's text — district-risk popups, the destination pin's
+road name — rotated right along with the map, reading upside-down whenever
+you're heading roughly south. Can't fix this with a CSS rule on the tooltip
+element itself: Leaflet already owns its `transform` (inline `translate3d` for
+positioning), so a competing rule would lose. Each tooltip's real content is
+wrapped in its own inner `<div class="tt-upright">`, which counter-rotates via
+a `--map-rotation` CSS custom property set on `#app` (a stable ancestor the
+rotation never touches — custom properties inherit straight through a
+transformed element, since `transform` is paint-time, not a cascade barrier).
+Verified: read the map's actual rotation and a live tooltip's counter-rotation
+back via `getComputedStyle`, summed to ≈0° regardless of heading.
 Demo mode enters it automatically, since that close-up view *is* the shot for
 the recording. START also handles the case that made it look broken —
 "after I pressed start, it is not moving at all": on a stationary device

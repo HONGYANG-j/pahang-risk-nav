@@ -137,6 +137,20 @@ function setMapRotation(headingDeg) {
   const delta = ((((target - rotationDeg + 180) % 360) + 360) % 360) - 180;
   rotationDeg += delta;
   State.map.getContainer().style.transform = `rotate(${rotationDeg}deg)`;
+  // Rotating the container took every label with it -- district-risk and
+  // destination tooltips read upside-down facing south, reported as "the
+  // place name etc is upside down". Exposed as a CSS custom property on #app
+  // (a stable ancestor the rotation itself never touches) so any element can
+  // counter-rotate back to upright: `transform: rotate(calc(var(--map-rotation)
+  // * -1deg))`. Custom properties inherit straight through a transformed
+  // ancestor -- transform is a paint-time operation, not a cascade barrier --
+  // so this reaches tooltips several DOM layers inside the rotated #map with
+  // no extra plumbing. Can't just add that transform to .leaflet-tooltip
+  // itself, though: Leaflet already owns that element's transform (inline
+  // translate3d for positioning), so a competing CSS rule would either lose
+  // to it outright or clobber the position -- each tooltip's actual content
+  // is wrapped in its own inner element instead (see risk.js, routing.js).
+  document.getElementById("app")?.style.setProperty("--map-rotation", String(rotationDeg));
 }
 
 /** Screen coords -> latlng, correcting for the nav-mode rotation. Leaflet
@@ -214,16 +228,40 @@ export function exitNavMode() {
 /** Keeps the trip-bar's start/exit toggle in sync with actual nav state --
  * called from both transitions plus clearRoute, so the button can never claim
  * a mode the app isn't in. */
+/** Was previously "which button started this?"-dependent (a `navStartedDemo`
+ * flag): pressing EXIT while a demo was running launched from the drawer left
+ * the simulated drive running in the background with the camera detached --
+ * reported as "even when i pressed exit, the navigation kept on running".
+ * A pure function of the two state flags instead, so the label (and what
+ * clicking it does, wired in app.js) can never disagree with what's actually
+ * running: STOP always means "a simulated drive is active, and this ends it
+ * completely", regardless of whether Live's START or the Demo Drive panel
+ * began it. */
 export function syncNavButton() {
   const btn = document.getElementById("nav-toggle-btn");
-  if (!btn) return;
-  // Glyph carries the meaning at a glance (play = begin driving, cross =
-  // leave); the word stays for anyone who doesn't read the symbol.
-  btn.textContent = State.navMode ? "✕ EXIT" : "▶ START";
-  btn.title = State.navMode
-    ? "Leave the navigation view and see the whole route"
-    : "Start navigating — close-up driving view";
-  btn.classList.toggle("active", State.navMode);
+  if (btn) {
+    if (State.demoMode) {
+      btn.textContent = "■ STOP";
+      btn.title = "Stop the simulated demo drive";
+    } else if (State.navMode) {
+      btn.textContent = "✕ EXIT";
+      btn.title = "Leave the navigation view and see the whole route";
+    } else {
+      btn.textContent = "▶ START";
+      btn.title = "Start navigating — close-up driving view of your real position";
+    }
+    btn.classList.toggle("active", State.navMode);
+  }
+
+  // The Demo Drive panel's own button can start a demo, but stopping one can
+  // happen from either that button OR the trip-bar STOP above -- keep both
+  // in sync regardless of which one actually changed the state.
+  const demoBtn = document.getElementById("demo-drive-btn");
+  const demoLabel = document.getElementById("demo-drive-label");
+  if (demoBtn && demoLabel) {
+    demoBtn.classList.toggle("active", State.demoMode);
+    demoLabel.textContent = State.demoMode ? "Stop Demo Drive" : "Start Demo Drive";
+  }
 }
 
 /** Toggles "keep the vehicle centred" mode and syncs the recentre button. */

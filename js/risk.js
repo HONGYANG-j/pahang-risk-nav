@@ -154,13 +154,17 @@ export function renderRiskLayer() {
         const factorsText = timeData.top_factors.length
           ? timeData.top_factors.join(", ")
           : "no dominant factor";
+        // Wrapped in .tt-upright so the text counter-rotates against nav
+        // mode's heading-up map rotation -- Leaflet already owns this
+        // element's own transform (positioning), so the counter-rotation has
+        // to live on an inner element instead, not the tooltip root itself.
         layer.bindTooltip(
-          `<strong>${district}</strong><br/>` +
+          `<div class="tt-upright"><strong>${district}</strong><br/>` +
             `Fatal share of records (${State.timeBucket}): ${(timeData.score * 100).toFixed(0)}%` +
             (timeData.low_confidence ? " (low sample)" : "") +
             `<br/>Associated factors: ${factorsText}<br/>` +
             `<span style="font-size:0.7em;color:#e0a0a0">&#9888; Placeholder from synthetic sample ` +
-            `data (n=${timeData.n} vehicle records) &mdash; not a validated risk estimate.</span>`,
+            `data (n=${timeData.n} vehicle records) &mdash; not a validated risk estimate.</span></div>`,
           { sticky: true, className: "hud-tooltip" }
         );
       },

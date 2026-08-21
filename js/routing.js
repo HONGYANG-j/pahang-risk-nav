@@ -110,7 +110,14 @@ function updateDestMarker(dest, label) {
     zIndexOffset: 900,
   }).addTo(State.map);
   if (label) {
-    State.route.destMarker.bindTooltip(label, { className: "hud-tooltip", direction: "top", offset: [0, -18] });
+    // .tt-upright counter-rotates against nav mode's heading-up map rotation
+    // -- see the CSS comment for why this can't just be a rule on the
+    // tooltip element itself.
+    State.route.destMarker.bindTooltip(`<div class="tt-upright">${label}</div>`, {
+      className: "hud-tooltip",
+      direction: "top",
+      offset: [0, -18],
+    });
   }
 }
 

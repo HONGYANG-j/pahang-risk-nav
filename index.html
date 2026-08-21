@@ -12,7 +12,7 @@
      serve.py's no-cache headers solve this locally, but Pages is static
      hosting with no server-side control over response headers, so it needs
      its own cache-busting instead. -->
-<link rel="stylesheet" href="style.css?v=1" />
+<link rel="stylesheet" href="style.css?v=2" />
 </head>
 <body>
 
@@ -160,7 +160,6 @@
         </div>
 
         <div id="control-row">
-          <button id="demo-mode-btn" title="Run a scripted demo scenario for recording"><span class="play-glyph">&#9654;</span><span id="demo-btn-label">Demo mode</span></button>
           <button id="assistant-btn" title="Grounded decision-support query tool for planners"><span class="play-glyph">&#9737;</span>Planner AI</button>
         </div>
 
@@ -168,14 +167,35 @@
           <button id="crash-points-btn" title="Show the dataset's actual recorded crash coordinates, instead of only whole-district shading"><span class="play-glyph">&#9679;</span><span id="crash-points-label">Show crash locations</span></button>
         </div>
 
+        <!-- LIVE: real GPS only. START (trip bar) gives a close-up view that
+             follows your actual device position -- never a simulation. -->
         <div id="route-panel">
-          <div class="panel-title">ROUTE</div>
-          <div class="route-hint">Tap the map or type coordinates, then GO — works with or without GPS. No live fix? Press START afterward to simulate the drive.</div>
+          <div class="panel-title">ROUTE <span class="panel-subtitle">— live, your real GPS</span></div>
+          <div class="route-hint">Tap the map or type coordinates, then GO — works with or without a live fix. Want to watch a drive play out instead of using real GPS? Use Demo Drive below.</div>
           <div class="route-row">
             <input id="dest-input" type="text" placeholder="Destination" />
             <button id="route-btn" disabled title="Pick a destination first">GO</button>
           </div>
           <div id="route-status"></div>
+        </div>
+
+        <!-- DEMO: fully simulated, never touches real GPS. Deliberately its
+             own panel with its own start+destination, not entangled with the
+             live route above -- pressing EXIT up on the trip bar always fully
+             stops it, no matter which control started it. -->
+        <div id="demo-panel">
+          <div class="panel-title">DEMO DRIVE <span class="panel-subtitle">— simulated, not real movement</span></div>
+          <div class="route-hint">Pick a start and destination (tap &#128205; then the map, or type coordinates) — both optional, blank defaults to your position and a nearby high-risk district.</div>
+          <div class="demo-point-row">
+            <input id="demo-start-input" type="text" placeholder="Start (optional)" />
+            <button id="demo-start-pin-btn" type="button" aria-label="Set start by tapping the map" title="Set start by tapping the map">&#128205;</button>
+          </div>
+          <div class="demo-point-row">
+            <input id="demo-dest-input" type="text" placeholder="Destination (optional)" />
+            <button id="demo-dest-pin-btn" type="button" aria-label="Set destination by tapping the map" title="Set destination by tapping the map">&#128205;</button>
+          </div>
+          <button id="demo-drive-btn"><span class="play-glyph">&#9654;</span><span id="demo-drive-label">Start Demo Drive</span></button>
+          <div id="demo-status"></div>
         </div>
 
         <div id="event-log">
@@ -221,6 +241,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-<script type="module" src="js/app.js?v=1"></script>
+<script type="module" src="js/app.js?v=2"></script>
 </body>
 </html>
