@@ -663,12 +663,22 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    bubble were still stock white-on-Leaflet-grey, which clashed with
    everything else exactly like the bright OSM tiles did. */
 
+/* The visible bubble (background/border/shadow/padding) lives on .tt-upright
+   below, NOT here -- see that rule for why. This outer element becomes a
+   fully transparent positioning shell: Leaflet still needs it (it's what
+   .bindTooltip() actually creates and positions via its own inline
+   translate3d), it just draws nothing of its own any more. */
 .hud-tooltip.leaflet-tooltip {
-  background: var(--panel-strong); color: var(--text);
-  border: 1px solid var(--border-glow); border-radius: 8px;
-  font-family: var(--font-body); font-size: 0.76rem; line-height: 1.45;
-  padding: 8px 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  background: transparent; border: none; padding: 0; box-shadow: none;
+  color: var(--text); font-family: var(--font-body); font-size: 0.76rem; line-height: 1.45;
 }
+/* A fixed-direction arrow can't rotate correctly with the bubble it's
+   attached to without real per-angle repositioning -- not worth it for a
+   decorative pointer, so it's simplest to just drop it while nav mode is
+   rotating things (rotationDeg is 0 outside nav mode, where the arrow still
+   shows normally via the plain .hud-tooltip.leaflet-tooltip::before rule
+   below). */
+#app.nav-mode .hud-tooltip.leaflet-tooltip::before { display: none; }
 .hud-tooltip.leaflet-tooltip::before { border-top-color: var(--border-glow); }
 
 /* Nav mode rotates the whole map container heading-up, which took every
@@ -678,9 +688,17 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    so a competing rule here would lose to it. Each tooltip's real content is
    wrapped in its own inner .tt-upright element instead (risk.js, routing.js)
    -- purely local, doesn't touch Leaflet's positioning transform at all. See
-   map.js's setMapRotation for where --map-rotation actually gets set. */
+   map.js's setMapRotation for where --map-rotation actually gets set.
+   The bubble's actual visual chrome (background/border/etc, moved here from
+   .hud-tooltip.leaflet-tooltip above) has to live on THIS element too, not
+   the outer one -- rotating only the text left the box behind, reported as
+   "the box is still in place... doesn't follow the text". Rotating box and
+   text together as one unit is what actually fixes it. */
 .tt-upright {
   display: inline-block;
+  background: var(--panel-strong);
+  border: 1px solid var(--border-glow); border-radius: 8px;
+  padding: 8px 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
   transform: rotate(calc(var(--map-rotation, 0) * -1deg));
   transition: transform 0.3s linear;
 }

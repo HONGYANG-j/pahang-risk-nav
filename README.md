@@ -398,6 +398,21 @@ rotation never touches — custom properties inherit straight through a
 transformed element, since `transform` is paint-time, not a cascade barrier).
 Verified: read the map's actual rotation and a live tooltip's counter-rotation
 back via `getComputedStyle`, summed to ≈0° regardless of heading.
+
+First version of this only counter-rotated the TEXT — the bubble's actual
+background/border/shadow were still declared on the outer `.leaflet-tooltip`
+element, which never got a counter-rotation (that's the element Leaflet's own
+transform owns, the whole reason the inner wrapper exists), so it stayed in
+the rotated orientation while the text moved: "the text is fixed, its just the
+box is still in place." Fixed by moving all the visible chrome onto
+`.tt-upright` itself — the outer element is now a fully transparent
+positioning shell with no chrome of its own, so box and text rotate together
+as one unit, verified by reading both elements' actual background colour and
+transform matrix and confirming the rotated matrix sits on the same element
+as the background. The directional arrow (Leaflet's `::before` pointer) is
+hidden while nav mode is rotating things, rather than trying to reposition a
+fixed-direction pointer for every possible angle — it still shows normally
+outside nav mode.
 Demo mode enters it automatically, since that close-up view *is* the shot for
 the recording. START also handles the case that made it look broken —
 "after I pressed start, it is not moving at all": on a stationary device
