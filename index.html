@@ -223,7 +223,7 @@
       <div id="assistant-header">
         <div>
           <div class="panel-title">PLANNER ASSISTANT</div>
-          <div id="assistant-subtitle">Grounded query tool — answers pulled from real app data only, not a generative model</div>
+          <div id="assistant-subtitle">Real AI (Groq-hosted LLM), grounded in this session's real map data — falls back to a plain data lookup if the assistant service is unreachable</div>
         </div>
         <button id="assistant-close-btn" aria-label="Close">&times;</button>
       </div>
@@ -246,6 +246,6 @@
 <!-- Registers L.heatLayer -- renders the real density model (risk.js
      loadDensityModel) as a smooth heatmap. Needs to load after leaflet.js. -->
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<script type="module" src="js/app.js?v=3"></script>
+<script type="module" src="js/app.js?v=4"></script>
 </body>
 </html>

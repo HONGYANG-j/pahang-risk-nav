@@ -14,12 +14,19 @@ version of the same one. Three features exist specifically to demonstrate this
 is more than a consumer nav app:
 
 - **Planner Assistant** (`js/assistant.js`) — a grounded query tool for a
-  police/state-planner persona ("where should patrols go tonight?"). Answers
-  are template-composed from real app state only — no LLM API call. That's
-  deliberate, not a shortcut: there's no backend here to hold an API key
-  safely, and a free-generating chatbot over this data risks inventing numbers
-  that were never computed, which is exactly what the competition's ethics
-  rules forbid.
+  police/state-planner persona ("where should patrols go tonight?"). Now backed
+  by a real LLM (Groq, via a small Cloudflare Worker proxy — see
+  `worker/README.md`), constrained by a system prompt to only use the app's
+  own real current data (district risk table, active jams), never to invent a
+  figure that wasn't computed — the same anti-fabrication stance the earlier
+  keyword-templated version held by construction, now held by instruction
+  instead. If the Worker is unreachable (not deployed, rate-limited, network
+  error) the assistant automatically falls back to the original grounded
+  templated lookup — the same one used the whole rest of this session — so a
+  live demo never breaks even if the backend hiccups. The frontend itself
+  stays fully static; the Worker is the one piece of real backend
+  infrastructure in this project, deliberately kept separate and minimal so it
+  never had to hold a key in front-end code.
 - **Policy Sandbox "Simulate Fix"** — the jam alert's action row includes a
   button that simulates dispatching a fix (patrol clears the jam) so the
   bot/simulation layer reads as "test an intervention before spending a real
@@ -150,11 +157,23 @@ placeholder everywhere it appears, rather than presenting it as a finding.
   demonstrate the crowdsourced-detection concept visually, since a new app has
   no real user base yet. They are never presented as real live users — the UI
   always labels them as simulated (legend + footer + per-alert source line).
+- **Real, with a caveat:** the Planner Assistant is a real LLM (Groq) once the
+  backend Worker is deployed — see `worker/README.md`. It's still constrained
+  to the app's own real data by its system prompt (a caveat, not a guarantee —
+  a model can still ignore an instruction), which is why it automatically
+  falls back to the old grounded templated answers if the Worker is down.
 
 Keep this distinction explicit in the pitch video narration. It's what keeps
 the concept defensible if a judge asks where the "real-time" data comes from.
 
 ## Running it
+
+The frontend (everything below) needs no setup and no backend — it runs
+straight off GitHub Pages or a local static server. The Planner Assistant's
+real-AI mode is the one exception: it needs the small Cloudflare Worker in
+`worker/` deployed once, with your own Groq key set as a Worker secret (see
+`worker/README.md`). Without it deployed, the assistant still works, just in
+its earlier grounded-template form — nothing else in the app depends on it.
 
 ### Easiest way (no typing, no terminal)
 

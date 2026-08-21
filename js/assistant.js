@@ -4,6 +4,14 @@ import { getDistrictAt } from "./risk.js";
 const BUCKETS = ["morning", "afternoon", "evening", "night"];
 const DISCLOSURE = "(Based on placeholder synthetic sample data -- not a validated model.)";
 
+// Cloudflare Worker that holds the Groq key server-side and proxies chat
+// requests -- see worker/README.md. Empty until deployed; askLLM() below
+// treats an empty/unreachable URL as "not configured yet" and falls
+// straight through to the grounded keyword answerQuery() below, so the
+// assistant works (in its older, still-honest form) even before or during
+// any Worker outage.
+const LLM_WORKER_URL = "";
+
 export const SUGGESTIONS = ["Where should patrols go tonight?", "Any active jams?", "Summary for this time of day"];
 
 function pct(score) {
@@ -78,20 +86,72 @@ export function answerQuery(rawInput) {
   );
 }
 
+/**
+ * Compact real-data summary sent as context to the LLM. Same underlying
+ * facts answerQuery() above uses (district risk table, active jams, current
+ * time bucket) plus a couple of extra fields (crash point / density model
+ * counts) so the model can accurately describe what's real vs placeholder
+ * if asked. The Worker's system prompt instructs the model to only use
+ * facts from this object -- see worker/src/index.js.
+ */
+function buildContext() {
+  return {
+    time_bucket: State.timeBucket,
+    districts: State.riskFeatures.map((f) => ({
+      district: f.district,
+      risk_by_time: Object.fromEntries(
+        BUCKETS.filter((b) => f.risk_by_time[b]).map((b) => {
+          const d = f.risk_by_time[b];
+          return [b, { fatal_share_pct: Math.round(d.score * 100), top_factors: d.top_factors, n: d.n, low_confidence: !!d.low_confidence }];
+        })
+      ),
+    })),
+    active_jams: State.activeJams.map((j) => {
+      const loc = getDistrictAt(j.lat, j.lng);
+      return { district: loc ? loc.district : "unmapped area", bot_count: j.botCount };
+    }),
+    real_crash_points_recorded: State.crashPointsCount || null,
+    real_density_model_cells: State.densityCells || null,
+  };
+}
+
+/** Calls the Worker's /chat endpoint. Throws on any failure -- caller falls back. */
+async function askLLM(message) {
+  if (!LLM_WORKER_URL) throw new Error("LLM_WORKER_URL not configured");
+  const res = await fetch(`${LLM_WORKER_URL}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, context: buildContext() }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.reason || data.error || `HTTP ${res.status}`);
+  if (!data.reply) throw new Error("Empty reply from assistant");
+  return data.reply;
+}
+
 function appendMessage(role, text) {
   const log = document.getElementById("assistant-log");
-  if (!log) return;
+  if (!log) return null;
   const row = document.createElement("div");
   row.className = `assistant-msg assistant-msg-${role}`;
   row.textContent = text;
   log.append(row);
   log.scrollTop = log.scrollHeight;
+  return row;
 }
 
-function ask(text) {
+async function ask(text) {
   if (!text.trim()) return;
   appendMessage("user", text);
-  appendMessage("bot", answerQuery(text));
+  const pending = appendMessage("bot", "Thinking…");
+  try {
+    const reply = await askLLM(text);
+    if (pending) pending.textContent = reply;
+  } catch (err) {
+    console.warn("LLM assistant unavailable, falling back to grounded lookup:", err.message);
+    const fallback = answerQuery(text);
+    if (pending) pending.textContent = LLM_WORKER_URL ? `${fallback}\n\n(Real AI assistant unavailable right now -- showing the grounded lookup instead.)` : fallback;
+  }
 }
 
 export function initAssistant() {

@@ -1,0 +1,10 @@
+name = "risk-nav-assistant"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Created by `wrangler kv namespace create RATE_LIMIT_KV` -- paste the id it
+# prints here. Without this binding, rate limiting is skipped entirely (the
+# Worker still runs), so it's worth setting up before a public demo.
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
