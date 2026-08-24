@@ -12,7 +12,7 @@
      serve.py's no-cache headers solve this locally, but Pages is static
      hosting with no server-side control over response headers, so it needs
      its own cache-busting instead. -->
-<link rel="stylesheet" href="style.css?v=4" />
+<link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
 
@@ -90,6 +90,23 @@
         <div id="turn-street"></div>
       </div>
     </div>
+
+    <!-- Always-visible map legend, moved out of the drawer so what the colours
+         mean doesn't require opening a menu to check. Collapsed to a small
+         chip by default; lives in top-stack's own flow (align-self: flex-end)
+         so it never has to guess mini-topbar/turn-banner's combined height
+         the way a fixed-pixel-offset corner element would. -->
+    <div id="map-legend">
+      <button id="legend-toggle-btn" aria-label="Show legend" title="What do the colours/markers mean?">&#9776;</button>
+      <div id="legend-body" hidden>
+        <div class="legend-item"><span class="dot dot-user"></span> You (live GPS)</div>
+        <div class="legend-item"><span class="dot dot-bot"></span> Simulated traffic</div>
+        <div class="legend-item"><span class="dot dot-risk"></span> Historical risk zone (whole district)</div>
+        <div class="legend-item"><span class="dot dot-crash"></span> Recorded crash location (real coords)</div>
+        <div class="legend-item"><span class="dot dot-density"></span> Density model (real, where crashes cluster)</div>
+        <div class="legend-item"><span class="dot dot-jam"></span> Simulated jam (sandbox)</div>
+      </div>
+    </div>
   </div>
 
   <!-- Bottom-anchored, natural document flow (see style.css note) so whichever of
@@ -159,20 +176,34 @@
           <button data-bucket="night">Night</button>
         </div>
 
+        <div class="section-title">AI ASSISTANT</div>
         <div id="control-row">
-          <button id="assistant-btn" title="Grounded decision-support query tool for planners"><span class="play-glyph">&#9737;</span>Planner AI</button>
+          <button id="assistant-btn" title="Real AI (Groq LLM), grounded in this session's real map data"><span class="play-glyph">&#9737;</span>Ask Planner AI</button>
         </div>
 
+        <div class="section-title">MAP LAYERS</div>
         <div id="layer-row">
           <button id="crash-points-btn" title="Show the dataset's actual recorded crash coordinates, instead of only whole-district shading"><span class="play-glyph">&#9679;</span><span id="crash-points-label">Show crash locations</span></button>
           <button id="density-model-btn" title="A real kernel density model fit to the verified crash coordinates -- shows hotspot shape within a district, not future prediction"><span class="play-glyph">&#9673;</span><span id="density-model-label">Show density model</span></button>
+        </div>
+
+        <!-- Totally separate live/demo, not just two panels sitting one after
+             another: only the selected mode's panel is even in the DOM's
+             visible flow (the other gets [hidden]). Switching modes here is
+             purely which panel you're LOOKING at -- opening the drawer via
+             the menu button re-syncs this to whatever's actually running
+             (app.js), so reopening it during a live demo lands back on the
+             demo controls (its Stop button) rather than the live panel. -->
+        <div id="mode-toggle" role="group" aria-label="Live or demo">
+          <button id="mode-live-btn" data-mode="live" class="active">LIVE</button>
+          <button id="mode-demo-btn" data-mode="demo">DEMO</button>
         </div>
 
         <!-- LIVE: real GPS only. START (trip bar) gives a close-up view that
              follows your actual device position -- never a simulation. -->
         <div id="route-panel">
           <div class="panel-title">ROUTE <span class="panel-subtitle">— live, your real GPS</span></div>
-          <div class="route-hint">Tap the map or type coordinates, then GO — works with or without a live fix. Want to watch a drive play out instead of using real GPS? Use Demo Drive below.</div>
+          <div class="route-hint">Tap the map or type coordinates, then GO — works with or without a live fix.</div>
           <div class="route-row">
             <input id="dest-input" type="text" placeholder="Destination" />
             <button id="route-btn" disabled title="Pick a destination first">GO</button>
@@ -182,9 +213,9 @@
 
         <!-- DEMO: fully simulated, never touches real GPS. Deliberately its
              own panel with its own start+destination, not entangled with the
-             live route above -- pressing EXIT up on the trip bar always fully
-             stops it, no matter which control started it. -->
-        <div id="demo-panel">
+             live route above -- pressing EXIT/STOP on the trip bar always
+             fully stops it, no matter which control started it. -->
+        <div id="demo-panel" hidden>
           <div class="panel-title">DEMO DRIVE <span class="panel-subtitle">— simulated, not real movement</span></div>
           <div class="route-hint">Pick a start and destination (tap &#128205; then the map, or type coordinates) — both optional, blank defaults to your position and a nearby high-risk district.</div>
           <div class="demo-point-row">
@@ -202,16 +233,6 @@
         <div id="event-log">
           <div class="panel-title">EVENT LOG</div>
           <div id="event-log-list"><div class="event-log-empty">Awaiting activity&hellip;</div></div>
-        </div>
-
-        <div id="legend">
-          <div class="panel-title">LEGEND</div>
-          <div class="legend-item"><span class="dot dot-user"></span> You (live GPS)</div>
-          <div class="legend-item"><span class="dot dot-bot"></span> Simulated traffic</div>
-          <div class="legend-item"><span class="dot dot-risk"></span> Historical risk zone (whole district)</div>
-          <div class="legend-item"><span class="dot dot-crash"></span> Recorded crash location (real coords)</div>
-          <div class="legend-item"><span class="dot dot-density"></span> Density model (real, where crashes cluster)</div>
-          <div class="legend-item"><span class="dot dot-jam"></span> Simulated jam (sandbox)</div>
         </div>
       </div>
     </div>
@@ -246,6 +267,6 @@
 <!-- Registers L.heatLayer -- renders the real density model (risk.js
      loadDensityModel) as a smooth heatmap. Needs to load after leaflet.js. -->
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<script type="module" src="js/app.js?v=5"></script>
+<script type="module" src="js/app.js?v=6"></script>
 </body>
 </html>

@@ -7,12 +7,15 @@
 [hidden] { display: none !important; }
 
 :root {
-  --void: #03060d;
-  --bg-1: #060b16;
-  --bg-2: #0a1424;
-  --panel: rgba(9, 17, 32, 0.74);
-  --panel-strong: rgba(7, 13, 26, 0.88);
-  --border: rgba(120, 170, 220, 0.16);
+  /* Slightly brighter across the board (base tones, borders, dim/faint text)
+     -- a deliberate, subtle lift over the original values, not a theme
+     change: hue and structure are untouched, only lightness. */
+  --void: #060a14;
+  --bg-1: #0a1220;
+  --bg-2: #101d33;
+  --panel: rgba(14, 24, 42, 0.74);
+  --panel-strong: rgba(12, 20, 36, 0.88);
+  --border: rgba(120, 170, 220, 0.22);
   --border-glow: rgba(34, 232, 255, 0.4);
   --cyan: #22e8ff;
   --cyan-dim: #0f8fae;
@@ -20,8 +23,8 @@
   --red: #ff3d68;
   --green: #22d68a;
   --text: #e7f1ff;
-  --text-dim: #8ea3c4;
-  --text-faint: #56698a;
+  --text-dim: #a0b4d4;
+  --text-faint: #66799e;
   --font-display: 'Orbitron', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -59,6 +62,20 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   color: var(--cyan);
   opacity: 0.85;
   margin-bottom: 6px;
+}
+
+/* Groups the drawer's tool rows (AI assistant, map layers) under a scannable
+   label -- the button-structure replan's main goal was making a now-larger
+   set of controls (Planner AI, 2 layer toggles, mode switch, 2 mode panels)
+   read as organised sections instead of one undifferentiated stack. Negative
+   margin claws back some of #detail-body's row gap so the label sits close
+   to the controls it names, not centred between two groups. */
+.section-title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.13em;
+  color: var(--text-faint);
+  margin: -6px 0 -4px 2px;
 }
 
 .scan-overlay {
@@ -177,6 +194,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 #app { position: relative; height: 100%; width: 100%; overflow: hidden; }
 #map { position: absolute; inset: 0; background: var(--void); transform-origin: 50% 50%; }
+/* Scoped to the tile pane only (not risk zones / markers / heatmap, which
+   live in their own Leaflet panes) -- the CARTO dark-matter basemap was the
+   single darkest element on screen, so this is where "slightly brighter"
+   actually reads as brighter rather than just lifting UI chrome around it. */
+.leaflet-tile-pane { filter: brightness(1.15) contrast(0.96); }
 
 /* Nav mode rotates the map container so the direction of travel points up.
    A rotated rectangle leaves empty corners, so the container becomes a square
@@ -230,6 +252,31 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 #turn-distance { font-family: var(--font-mono); font-weight: 700; font-size: 1.2rem; color: var(--text); line-height: 1.2; }
 #turn-street { font-family: var(--font-body); font-size: 0.76rem; color: var(--text-dim); margin-top: 2px; }
+
+/* Corner map legend -- moved out of the drawer so what the colours/markers
+   mean is visible without opening a menu. align-self:flex-end (not a fixed
+   top/right pixel offset) is deliberate: it's a normal child of #top-stack's
+   flex column, so it automatically sits below mini-topbar and turn-banner
+   (whichever of those are actually showing) via the column's own gap,
+   the same anti-overlap trick #top-stack/#bottom-stack already rely on,
+   rather than guessing their combined height. Right-aligned within that row
+   so it reads as a small corner chip, not a full-width bar like its siblings. */
+#map-legend { align-self: flex-end; margin-right: 12px; }
+#legend-toggle-btn {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--border); color: var(--cyan);
+  display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  cursor: pointer; backdrop-filter: blur(14px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+#legend-body {
+  margin-top: 6px; padding: 10px 12px; font-size: 0.7rem;
+  background: var(--panel-strong); border: 1px solid var(--border); border-radius: 10px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 220px;
+}
 .brand-glyph { color: var(--cyan); font-size: 1.15rem; text-shadow: 0 0 10px rgba(34,232,255,0.8); }
 #status-pill {
   display: flex; align-items: center; gap: 6px;
@@ -476,6 +523,32 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   box-shadow: inset 0 0 0 1px rgba(34,232,255,0.4);
 }
 
+/* Same segmented-control pattern as #time-toggle, 2-way instead of 4-way.
+   This is what makes live/demo "totally separate" rather than just two
+   panels stacked in the same scroll -- only the selected mode's panel is
+   even visible (app.js toggles [hidden] on #route-panel/#demo-panel), so
+   there's no longer a shared scroll position or visual ambiguity about
+   which one is "active" the way two always-visible panels implied. */
+#mode-toggle {
+  display: flex; gap: 3px; width: 100%;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px;
+}
+#mode-toggle button {
+  flex: 1; min-height: 40px;
+  background: transparent; border: none; color: var(--text-dim); padding: 8px 6px;
+  border-radius: 7px; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em;
+  font-weight: 700; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+#mode-toggle button[data-mode="live"].active {
+  background: rgba(34,232,255,0.15); color: var(--cyan);
+  box-shadow: inset 0 0 0 1px rgba(34,232,255,0.4);
+}
+#mode-toggle button[data-mode="demo"].active {
+  background: rgba(255,176,32,0.15); color: var(--amber);
+  box-shadow: inset 0 0 0 1px rgba(255,176,32,0.4);
+}
+
 #control-row { display: flex; gap: 8px; }
 #assistant-btn {
   flex: 1; min-height: 44px;
@@ -588,10 +661,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .event-row.sev-warn .event-text { color: var(--amber); }
 .event-row.sev-info .event-text { color: var(--cyan); }
 
-#legend {
-  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-  padding: 10px 12px; font-size: 0.7rem; display: flex; flex-direction: column; gap: 6px;
-}
 .legend-item { display: flex; align-items: center; gap: 8px; color: var(--text-dim); }
 .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .dot-user { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }

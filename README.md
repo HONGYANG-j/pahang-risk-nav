@@ -48,7 +48,12 @@ These used to share one "START" button, which silently fell into simulating a
 route if the device happened to be stationary. Reported back as confusing (and
 as a real bug: pressing EXIT while a demo launched from the drawer was running
 left it going in the background) — so they're now two independent panels with
-no shared state beyond the map itself:
+no shared state beyond the map itself, and a **LIVE / DEMO** switch in the
+drawer makes them mutually exclusive in the UI too: only the selected mode's
+panel is ever visible, not two panels stacked in the same scroll. Opening the
+drawer re-syncs the switch to whatever's actually running, so reopening it
+mid-demo lands back on the demo controls (its Stop button) rather than the
+live panel you might have last been looking at.
 
 - **Route (live)** — real GPS only. Plan a destination, then **START** on the
   trip bar gives a close-up, heading-up driving view that follows your actual
@@ -348,12 +353,17 @@ shapes are drawn from — `risk_lookup.geojson` supplies only the per-district
 (loaded via CDN, same as Leaflet) handles the point-in-polygon math for real
 district shapes instead of the circle-distance approximation used originally.
 
-**Layout:** Waze-density, not "a whole map." Two small always-visible chrome
-pieces — `#mini-topbar` (brand + LIVE/playback status + one menu button) and
-`#bottom-stack` (alert banner, active-route trip bar, speed readout) — plus
-everything else (stats, time-of-day toggle, demo/assistant controls,
-destination search, event log, legend) behind a single `#detail-drawer`
-bottom sheet opened by the menu button. The map stays dominant instead of
+**Layout:** Waze-density, not "a whole map." Three small always-visible chrome
+pieces — `#mini-topbar` (brand + LIVE/playback status + one menu button),
+`#bottom-stack` (alert banner, active-route trip bar, speed readout), and a
+collapsed `#map-legend` corner chip — plus everything else (stats,
+time-of-day toggle, AI assistant, map layer toggles, the LIVE/DEMO switch and
+its panel, event log) behind a single `#detail-drawer` bottom sheet opened by
+the menu button. The legend used to live in the drawer too; moved out so what
+the colours/markers mean doesn't require opening a menu to check — it's a
+normal flex child of `#mini-topbar`'s own container (`align-self: flex-end`),
+so it automatically clears whatever else in that column is showing rather
+than needing a hand-tuned pixel offset. The map stays dominant instead of
 competing with permanently-docked panels.
 
 Both chrome clusters flow in normal document order inside one

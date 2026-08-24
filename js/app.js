@@ -33,6 +33,30 @@ async function start() {
     btn.addEventListener("click", () => setTimeBucket(btn.dataset.bucket));
   });
 
+  // Makes live/demo mutually exclusive in the UI, not just two panels stacked
+  // in the same scroll -- only the selected mode's panel is ever visible.
+  // Pure UI selection, not app State: which panel you're LOOKING at is
+  // independent of whether a demo is actually running (STOP in the trip bar
+  // works regardless of which tab the drawer happens to be showing).
+  function selectMode(mode) {
+    const isLive = mode === "live";
+    document.getElementById("mode-live-btn").classList.toggle("active", isLive);
+    document.getElementById("mode-demo-btn").classList.toggle("active", !isLive);
+    document.getElementById("route-panel").hidden = !isLive;
+    document.getElementById("demo-panel").hidden = isLive;
+  }
+  document.getElementById("mode-live-btn").addEventListener("click", () => selectMode("live"));
+  document.getElementById("mode-demo-btn").addEventListener("click", () => selectMode("demo"));
+
+  // Corner legend: collapsed by default, expands in place. No positioning
+  // logic needed here -- #map-legend's CSS (align-self: flex-end inside
+  // #top-stack) already keeps it clear of mini-topbar/turn-banner.
+  const legendToggleBtn = document.getElementById("legend-toggle-btn");
+  const legendBody = document.getElementById("legend-body");
+  legendToggleBtn.addEventListener("click", () => {
+    legendBody.hidden = !legendBody.hidden;
+  });
+
   async function submitRoute() {
     const raw = document.getElementById("dest-input").value.trim();
     // #route-status is transient in-drawer feedback (errors, "Routing...") --
@@ -204,7 +228,14 @@ async function start() {
   const drawer = document.getElementById("detail-drawer");
   const openDrawer = () => { drawer.hidden = false; };
   const closeDrawer = () => { drawer.hidden = true; };
-  document.getElementById("menu-btn").addEventListener("click", openDrawer);
+  // Only the plain menu-button open re-syncs the tab to whatever's actually
+  // running -- the map-tap paths below call selectMode() themselves right
+  // before opening the drawer (to reveal the field they just filled), and
+  // syncing here too would immediately undo that choice.
+  document.getElementById("menu-btn").addEventListener("click", () => {
+    selectMode(State.demoMode ? "demo" : "live");
+    openDrawer();
+  });
   document.getElementById("detail-close-btn").addEventListener("click", closeDrawer);
   document.getElementById("detail-backdrop").addEventListener("click", closeDrawer);
 
@@ -237,16 +268,19 @@ async function start() {
     armedField = "route-dest";
 
     if (field === "demo-start") {
+      selectMode("demo"); // otherwise the field just filled would be sitting in a [hidden] panel
       document.getElementById("demo-start-input").value = value;
       document.getElementById("demo-status").textContent = "Start set from map tap.";
       openDrawer();
       document.getElementById("demo-panel").scrollIntoView({ block: "nearest" });
     } else if (field === "demo-dest") {
+      selectMode("demo");
       document.getElementById("demo-dest-input").value = value;
       document.getElementById("demo-status").textContent = "Destination set from map tap.";
       openDrawer();
       document.getElementById("demo-panel").scrollIntoView({ block: "nearest" });
     } else {
+      selectMode("live");
       document.getElementById("dest-input").value = value;
       syncGoEnabled(); // programmatic .value assignment doesn't fire `input`
       document.getElementById("route-status").textContent = "Destination set from map tap — tap GO to route there.";
