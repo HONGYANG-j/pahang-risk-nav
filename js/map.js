@@ -32,7 +32,7 @@ async function loadPahangMask(map) {
   ];
   L.polygon([WORLD, ...holes], {
     stroke: false,
-    fillColor: "#03060d",
+    fillColor: "#060a14", // matches style.css's --void -- can't read the CSS custom property from here, so kept in sync by hand
     fillOpacity: 0.82,
     interactive: false,
   }).addTo(map);
