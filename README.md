@@ -157,11 +157,12 @@ placeholder everywhere it appears, rather than presenting it as a finding.
   demonstrate the crowdsourced-detection concept visually, since a new app has
   no real user base yet. They are never presented as real live users — the UI
   always labels them as simulated (legend + footer + per-alert source line).
-- **Real, with a caveat:** the Planner Assistant is a real LLM (Groq) once the
-  backend Worker is deployed — see `worker/README.md`. It's still constrained
-  to the app's own real data by its system prompt (a caveat, not a guarantee —
-  a model can still ignore an instruction), which is why it automatically
-  falls back to the old grounded templated answers if the Worker is down.
+- **Real, with a caveat:** the Planner Assistant is a real LLM (Groq
+  `openai/gpt-oss-20b`, via the deployed Cloudflare Worker — see
+  `worker/README.md`). It's still constrained to the app's own real data by
+  its system prompt (a caveat, not a guarantee — a model can still ignore an
+  instruction), which is why it automatically falls back to the old grounded
+  templated answers if the Worker is unreachable or rate-limited.
 
 Keep this distinction explicit in the pitch video narration. It's what keeps
 the concept defensible if a judge asks where the "real-time" data comes from.
@@ -170,10 +171,11 @@ the concept defensible if a judge asks where the "real-time" data comes from.
 
 The frontend (everything below) needs no setup and no backend — it runs
 straight off GitHub Pages or a local static server. The Planner Assistant's
-real-AI mode is the one exception: it needs the small Cloudflare Worker in
-`worker/` deployed once, with your own Groq key set as a Worker secret (see
-`worker/README.md`). Without it deployed, the assistant still works, just in
-its earlier grounded-template form — nothing else in the app depends on it.
+real-AI mode is the one exception: it's backed by a small Cloudflare Worker
+in `worker/` (deployed, see `worker/README.md` for redeploying after a code
+change). If that Worker is ever unreachable or rate-limited, the assistant
+falls back automatically to its earlier grounded-template form — nothing
+else in the app depends on it.
 
 ### Easiest way (no typing, no terminal)
 

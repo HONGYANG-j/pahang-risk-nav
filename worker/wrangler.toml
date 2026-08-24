@@ -7,4 +7,4 @@ compatibility_date = "2024-11-01"
 # Worker still runs), so it's worth setting up before a public demo.
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "86abbe719d0d482eb916a976e4f04a22"

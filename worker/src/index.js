@@ -23,7 +23,7 @@ const ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:8080",
 ]);
 
-const GROQ_MODEL = "llama-3.1-8b-instant"; // fast + cheap, plenty for short grounded Q&A
+const GROQ_MODEL = "openai/gpt-oss-20b"; // cheapest text-only model on this account, plenty for short grounded Q&A
 const MAX_TOKENS = 300;
 const IP_LIMIT_PER_HOUR = 20; // per-visitor abuse guard
 const GLOBAL_LIMIT_PER_DAY = 300; // total-cost guard, shared across all visitors

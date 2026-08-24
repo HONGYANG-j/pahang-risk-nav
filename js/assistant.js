@@ -10,7 +10,7 @@ const DISCLOSURE = "(Based on placeholder synthetic sample data -- not a validat
 // straight through to the grounded keyword answerQuery() below, so the
 // assistant works (in its older, still-honest form) even before or during
 // any Worker outage.
-const LLM_WORKER_URL = "";
+const LLM_WORKER_URL = "https://risk-nav-assistant.pahang-risk-nav.workers.dev";
 
 export const SUGGESTIONS = ["Where should patrols go tonight?", "Any active jams?", "Summary for this time of day"];
 
