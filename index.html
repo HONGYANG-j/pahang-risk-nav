@@ -12,7 +12,7 @@
      serve.py's no-cache headers solve this locally, but Pages is static
      hosting with no server-side control over response headers, so it needs
      its own cache-busting instead. -->
-<link rel="stylesheet" href="style.css?v=5" />
+<link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
 
@@ -92,20 +92,19 @@
     </div>
 
     <!-- Always-visible map legend, moved out of the drawer so what the colours
-         mean doesn't require opening a menu to check. Collapsed to a small
-         chip by default; lives in top-stack's own flow (align-self: flex-end)
-         so it never has to guess mini-topbar/turn-banner's combined height
-         the way a fixed-pixel-offset corner element would. -->
+         mean doesn't require opening a menu to check -- and always fully shown
+         here, not behind its own expand/collapse. Lives in top-stack's own
+         flow (align-self: flex-end) so it never has to guess mini-topbar/
+         turn-banner's combined height the way a fixed-pixel-offset corner
+         element would. -->
     <div id="map-legend">
-      <button id="legend-toggle-btn" aria-label="Show legend" title="What do the colours/markers mean?">&#9776;</button>
-      <div id="legend-body" hidden>
-        <div class="legend-item"><span class="dot dot-user"></span> You (live GPS)</div>
-        <div class="legend-item"><span class="dot dot-bot"></span> Simulated traffic</div>
-        <div class="legend-item"><span class="dot dot-risk"></span> Historical risk zone (whole district)</div>
-        <div class="legend-item"><span class="dot dot-crash"></span> Recorded crash location (real coords)</div>
-        <div class="legend-item"><span class="dot dot-density"></span> Density model (real, where crashes cluster)</div>
-        <div class="legend-item"><span class="dot dot-jam"></span> Simulated jam (sandbox)</div>
-      </div>
+      <div class="legend-item"><span class="dot dot-user"></span> You (live GPS)</div>
+      <div class="legend-item"><span class="dot dot-bot"></span> Simulated traffic</div>
+      <div class="legend-item"><span class="dot dot-risk"></span> Historical risk zone (whole district)</div>
+      <div class="legend-item"><span class="dot dot-crash"></span> Recorded crash location (real coords)</div>
+      <div class="legend-item"><span class="dot dot-density"></span> Density model (real, where crashes cluster)</div>
+      <div class="legend-item"><span class="dot dot-jam"></span> Simulated jam (sandbox)</div>
+    </div>
     </div>
   </div>
 
@@ -267,6 +266,6 @@
 <!-- Registers L.heatLayer -- renders the real density model (risk.js
      loadDensityModel) as a smooth heatmap. Needs to load after leaflet.js. -->
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<script type="module" src="js/app.js?v=6"></script>
+<script type="module" src="js/app.js?v=7"></script>
 </body>
 </html>

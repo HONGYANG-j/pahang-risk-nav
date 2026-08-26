@@ -261,16 +261,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    the same anti-overlap trick #top-stack/#bottom-stack already rely on,
    rather than guessing their combined height. Right-aligned within that row
    so it reads as a small corner chip, not a full-width bar like its siblings. */
-#map-legend { align-self: flex-end; margin-right: 12px; }
-#legend-toggle-btn {
-  width: 40px; height: 40px; border-radius: 10px;
-  background: var(--panel); border: 1px solid var(--border); color: var(--cyan);
-  display: flex; align-items: center; justify-content: center; font-size: 1rem;
-  cursor: pointer; backdrop-filter: blur(14px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-}
-#legend-body {
-  margin-top: 6px; padding: 10px 12px; font-size: 0.7rem;
+#map-legend {
+  align-self: flex-end; margin-right: 12px;
+  padding: 10px 12px; font-size: 0.7rem;
   background: var(--panel-strong); border: 1px solid var(--border); border-radius: 10px;
   backdrop-filter: blur(14px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);

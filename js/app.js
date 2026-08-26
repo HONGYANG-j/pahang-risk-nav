@@ -48,15 +48,6 @@ async function start() {
   document.getElementById("mode-live-btn").addEventListener("click", () => selectMode("live"));
   document.getElementById("mode-demo-btn").addEventListener("click", () => selectMode("demo"));
 
-  // Corner legend: collapsed by default, expands in place. No positioning
-  // logic needed here -- #map-legend's CSS (align-self: flex-end inside
-  // #top-stack) already keeps it clear of mini-topbar/turn-banner.
-  const legendToggleBtn = document.getElementById("legend-toggle-btn");
-  const legendBody = document.getElementById("legend-body");
-  legendToggleBtn.addEventListener("click", () => {
-    legendBody.hidden = !legendBody.hidden;
-  });
-
   async function submitRoute() {
     const raw = document.getElementById("dest-input").value.trim();
     // #route-status is transient in-drawer feedback (errors, "Routing...") --
