@@ -50,17 +50,19 @@ async function loadPahangMask(map) {
 
 export async function initMap() {
   const map = L.map("map", { zoomControl: true, worldCopyJump: false });
-  // CARTO Dark Matter, no-labels variant: a dark basemap free/no-key, so the
-  // map itself matches the dark glass HUD instead of clashing with it (the
-  // default OSM tiles are bright-white-and-colourful, which looked like a
-  // stock road atlas underneath a sci-fi overlay). No-labels specifically --
-  // street/place names in tiny map text were competing with our own HUD
-  // readouts (district name, risk level) for attention; dropping them is
-  // also a direct fix for "too cluttered", not just a theme match.
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
-    attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
-    subdomains: "abcd",
-    maxZoom: 19,
+  // Esri Dark Gray Canvas (base layer only -- there's a separate "Reference"
+  // layer with labels, deliberately not added: street/place names in tiny
+  // map text were competing with our own HUD readouts for attention).
+  // Switched from CARTO's dark_nolabels tiles (2026-08-27): CARTO now gates
+  // that basemap CDN behind an API key -- it still returns HTTP 200, but the
+  // "tile" is a ~100-byte placeholder stamped "API KEY REQUIRED", covering
+  // the whole map. Esri's ArcGIS Online tile service remains free/keyless
+  // for this usage tier. Note the URL's tile order is {z}/{y}/{x} (Esri's
+  // REST convention), not Leaflet's usual {z}/{x}/{y} -- L.tileLayer just
+  // substitutes named placeholders wherever they appear, so this is fine.
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+    attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+    maxZoom: 16,
     noWrap: true,
   }).addTo(map);
   State.map = map;
