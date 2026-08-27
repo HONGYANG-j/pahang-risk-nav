@@ -49,7 +49,15 @@ async function loadPahangMask(map) {
 }
 
 export async function initMap() {
-  const map = L.map("map", { zoomControl: true, worldCopyJump: false });
+  // zoomControl: false -- Leaflet's default on-screen +/- buttons render at
+  // top:10,left:10 inside #map, which sits directly under #mini-topbar's
+  // brand icon (#mini-topbar spans the full top edge at a higher z-index).
+  // Every other screen corner is similarly claimed by this app's own chrome
+  // (#top-stack/#bottom-stack both span nearly full width), so there's no
+  // free corner to move the control to -- removing it is simpler and lower-
+  // risk than fighting for one. Scroll-wheel/pinch/double-click zoom still
+  // work; this only removes the on-screen buttons.
+  const map = L.map("map", { zoomControl: false, worldCopyJump: false });
   // Esri Dark Gray Canvas (base layer only -- there's a separate "Reference"
   // layer with labels, deliberately not added: street/place names in tiny
   // map text were competing with our own HUD readouts for attention).
