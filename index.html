@@ -12,7 +12,7 @@
      serve.py's no-cache headers solve this locally, but Pages is static
      hosting with no server-side control over response headers, so it needs
      its own cache-busting instead. -->
-<link rel="stylesheet" href="style.css?v=8" />
+<link rel="stylesheet" href="style.css?v=9" />
 </head>
 <body>
 
@@ -74,8 +74,18 @@
        container correctly, but none of the controls work until those awaits
        finish -- without this the UI looks ready and silently ignores taps. -->
   <div id="boot-scrim" hidden>
-    <div class="boot-spinner" aria-hidden="true"></div>
-    <div class="boot-label">LOADING MAP &amp; RISK DATA&hellip;</div>
+    <div id="boot-loading">
+      <div class="boot-spinner" aria-hidden="true"></div>
+      <div class="boot-label">LOADING MAP &amp; RISK DATA&hellip;</div>
+    </div>
+    <!-- Shown instead of the spinner if startup fails. Without this a failed
+         load leaves a fully-drawn app whose controls never got listeners --
+         permanently dead, with nothing on screen saying so. -->
+    <div id="boot-error" hidden>
+      <div class="boot-error-title">Couldn&rsquo;t load map data</div>
+      <div class="boot-error-detail" id="boot-error-detail"></div>
+      <button id="boot-retry-btn" type="button">RETRY</button>
+    </div>
   </div>
 
   <!-- Top-anchored flow, same reasoning as bottom-stack: whichever of these
@@ -279,6 +289,6 @@
 <!-- Registers L.heatLayer -- renders the real density model (risk.js
      loadDensityModel) as a smooth heatmap. Needs to load after leaflet.js. -->
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<script type="module" src="js/app.js?v=12"></script>
+<script type="module" src="js/app.js?v=13"></script>
 </body>
 </html>

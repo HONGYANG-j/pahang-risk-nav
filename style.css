@@ -242,6 +242,20 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em;
   color: var(--cyan); opacity: 0.85;
 }
+#boot-loading { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+#boot-error {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  max-width: 320px; padding: 0 24px; text-align: center;
+}
+.boot-error-title {
+  font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--red);
+}
+.boot-error-detail { font-size: 0.78rem; line-height: 1.5; color: var(--text-dim); }
+#boot-retry-btn {
+  margin-top: 4px; min-height: 44px; padding: 10px 26px; border-radius: 10px; cursor: pointer;
+  background: rgba(34,232,255,0.12); border: 1px solid var(--border-glow); color: var(--cyan);
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.74rem; letter-spacing: 0.08em;
+}
 /* The spinner is decoration, not information -- users who ask for reduced
    motion still get the label, just without the rotation. */
 @media (prefers-reduced-motion: reduce) {

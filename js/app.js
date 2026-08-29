@@ -37,11 +37,23 @@ async function start() {
   try {
     await initMap();
     await loadRiskLayer();
-  } finally {
-    // Removed even if loading failed -- leaving the scrim up forever would
-    // turn a partial failure into a permanently frozen-looking app.
-    if (bootScrim) bootScrim.hidden = true;
+  } catch (e) {
+    // Every addEventListener below is unreachable once this throws, so the
+    // app would sit there fully drawn with nothing working and no
+    // explanation -- the same silent-failure trap the GPS paths hit twice
+    // before. Keep the scrim up and say what happened instead of quietly
+    // revealing a dead app. Reload rather than resuming: initMap() may have
+    // partially built a Leaflet instance, and re-running start() over that
+    // is a worse failure than starting clean.
+    console.error("Startup failed:", e);
+    document.getElementById("boot-loading").hidden = true;
+    const detail = document.getElementById("boot-error-detail");
+    if (detail) detail.textContent = `${e.message}. Check your connection and try again.`;
+    document.getElementById("boot-error").hidden = false;
+    document.getElementById("boot-retry-btn").addEventListener("click", () => location.reload());
+    return;
   }
+  if (bootScrim) bootScrim.hidden = true;
   setTimeBucket(State.timeBucket);
   startGeolocation();
   initAlerts();
