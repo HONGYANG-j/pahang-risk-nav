@@ -355,5 +355,13 @@ export function stopDemoMode() {
   clearRoute(); // otherwise the demo route lingers and keeps matching jam alerts
   stopBots();
   spawnBots();
+  // The speed readout otherwise stays frozen at the simulated vehicle's last
+  // speed (commonly 60, cruise speed) even though nothing is moving anymore
+  // -- real GPS hasn't produced a fresh reading yet, and won't until/unless
+  // a fix actually arrives. "--" matches the same placeholder shown before
+  // any fix has ever arrived, for the same reason: no live speed to show.
+  State.userSpeedKmh = 0;
+  const speedEl = document.getElementById("speed-value");
+  if (speedEl) speedEl.textContent = "--";
   startGeolocation();
 }
