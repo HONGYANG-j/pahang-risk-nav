@@ -13,3 +13,9 @@ export function speak(text) {
 export function speechSupported() {
   return "speechSynthesis" in window;
 }
+
+/** Stops anything currently being spoken. Used when a demo drive ends, so a
+ * hazard alert isn't still being narrated for a drive that's already over. */
+export function cancelSpeech() {
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+}

@@ -12,7 +12,7 @@
      serve.py's no-cache headers solve this locally, but Pages is static
      hosting with no server-side control over response headers, so it needs
      its own cache-busting instead. -->
-<link rel="stylesheet" href="style.css?v=7" />
+<link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
 
@@ -68,6 +68,15 @@
 <div id="app" hidden>
   <div id="map"></div>
   <div class="scan-overlay" aria-hidden="true"></div>
+
+  <!-- Covers the app while startup's network-bound awaits run (see app.js
+       start()). #app must already be visible for Leaflet to size its
+       container correctly, but none of the controls work until those awaits
+       finish -- without this the UI looks ready and silently ignores taps. -->
+  <div id="boot-scrim" hidden>
+    <div class="boot-spinner" aria-hidden="true"></div>
+    <div class="boot-label">LOADING MAP &amp; RISK DATA&hellip;</div>
+  </div>
 
   <!-- Top-anchored flow, same reasoning as bottom-stack: whichever of these
        are actually visible stack correctly without hand-tuned offsets. -->
@@ -270,6 +279,6 @@
 <!-- Registers L.heatLayer -- renders the real density model (risk.js
      loadDensityModel) as a smooth heatmap. Needs to load after leaflet.js. -->
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<script type="module" src="js/app.js?v=11"></script>
+<script type="module" src="js/app.js?v=12"></script>
 </body>
 </html>

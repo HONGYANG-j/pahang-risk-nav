@@ -250,8 +250,27 @@ export function initAssistant() {
     });
 
     micBtn.addEventListener("click", () => {
-      if (listening) recognition.stop();
-      else recognition.start();
+      if (listening) {
+        recognition.stop();
+        return;
+      }
+      // Set synchronously here, NOT only in the async "start" event: a fast
+      // double-tap (routine on mobile, and likely here since there's no
+      // instant feedback that listening began) lands the second click before
+      // that event fires, so `listening` would still be false and
+      // recognition.start() throws InvalidStateError ("recognition has
+      // already started") -- verified directly against a live instance.
+      listening = true;
+      micBtn.classList.add("listening");
+      try {
+        recognition.start();
+      } catch (e) {
+        // Defensive: if start() rejected for any other reason, don't strand
+        // the button in a listening state the user can't get out of.
+        listening = false;
+        micBtn.classList.remove("listening");
+        console.warn("Speech recognition could not start:", e.message);
+      }
     });
   } else if (micBtn) {
     micBtn.hidden = true;

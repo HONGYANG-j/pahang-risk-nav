@@ -21,9 +21,27 @@ async function start() {
   started = true;
   document.getElementById("landing-screen").hidden = true;
   document.getElementById("app").hidden = false;
+  // #app has to be revealed BEFORE initMap() -- Leaflet measures its
+  // container on creation, and a display:none container sizes to 0x0. But
+  // everything below (including every addEventListener) is behind two
+  // network-bound awaits, so for that whole window the UI is fully drawn and
+  // completely dead: measured ~1.5s on a local server, and this loads three
+  // GeoJSON files (district polygons are the big one), so a phone on mobile
+  // data sits there for meaningfully longer. Tapping the menu in that window
+  // did nothing at all, with no indication anything was still loading.
+  // The scrim keeps Leaflet's sizing correct while making the wait honest
+  // and swallowing clicks instead of silently dropping them.
+  const bootScrim = document.getElementById("boot-scrim");
+  if (bootScrim) bootScrim.hidden = false;
 
-  await initMap();
-  await loadRiskLayer();
+  try {
+    await initMap();
+    await loadRiskLayer();
+  } finally {
+    // Removed even if loading failed -- leaving the scrim up forever would
+    // turn a partial failure into a permanently frozen-looking app.
+    if (bootScrim) bootScrim.hidden = true;
+  }
   setTimeBucket(State.timeBucket);
   startGeolocation();
   initAlerts();

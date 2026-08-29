@@ -4,6 +4,7 @@ import { planRoute, fetchRoutes, onReroute, clearRoute } from "./routing.js";
 import { haversineMeters } from "./risk.js";
 import { spawnBots, stopBots } from "./bots.js";
 import { logEvent } from "./eventlog.js";
+import { cancelSpeech } from "./tts.js";
 
 const DEMO_TICK_MS = 250;
 // The simulated vehicle drives at a realistic speed in SIMULATED time, and
@@ -363,5 +364,8 @@ export function stopDemoMode() {
   State.userSpeedKmh = 0;
   const speedEl = document.getElementById("speed-value");
   if (speedEl) speedEl.textContent = "--";
+  // Otherwise a jam/risk alert that started being read aloud keeps narrating
+  // a hazard for a drive that no longer exists.
+  cancelSpeech();
   startGeolocation();
 }

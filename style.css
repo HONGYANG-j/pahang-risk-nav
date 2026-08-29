@@ -220,6 +220,34 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    permanently in #disclosure-footer so attribution stays visible either way. */
 #app.nav-mode .leaflet-control-container { display: none; }
 
+/* Startup scrim -- see index.html/app.js. z-index above every piece of app
+   chrome (drawer is 1250, assistant modal 1300) so nothing pokes through,
+   and it deliberately accepts pointer events so taps during loading are
+   swallowed here rather than landing on controls whose listeners don't
+   exist yet. */
+#boot-scrim {
+  position: absolute; inset: 0; z-index: 1400;
+  background: rgba(6, 10, 20, 0.82);
+  backdrop-filter: blur(6px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+}
+.boot-spinner {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2px solid rgba(34, 232, 255, 0.2);
+  border-top-color: var(--cyan);
+  animation: boot-spin 0.8s linear infinite;
+}
+@keyframes boot-spin { to { transform: rotate(360deg); } }
+.boot-label {
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em;
+  color: var(--cyan); opacity: 0.85;
+}
+/* The spinner is decoration, not information -- users who ask for reduced
+   motion still get the label, just without the rotation. */
+@media (prefers-reduced-motion: reduce) {
+  .boot-spinner { animation: none; }
+}
+
 /* Owns outer positioning for both #mini-topbar and #turn-banner -- normal
    document flow inside one absolutely-positioned container, same pattern as
    #bottom-stack, so the banner appearing/disappearing never has to guess
