@@ -31,6 +31,11 @@ is more than a consumer nav app:
   new backend) — the reply is read back aloud too, so the whole exchange can
   happen without looking at the phone. Feature-detected: browsers without
   speech recognition (Firefox) simply don't show the button.
+- **Spoken hazard alerts** — jam and risk-zone alerts (the same banner shown
+  on screen) are read aloud once via the same voice engine, in both demo and
+  real GPS navigation — no need to look at the screen to know a hazard just
+  came up. Speaks once per new condition (reuses the alert system's existing
+  dismiss/cooldown tracking), not on a repeating timer.
 - **Real-time weather** — a 4th HUD stat (District/Risk/Jams/Weather) pulling
   live current conditions from Open-Meteo (free, no key). Deliberately kept
   separate from the risk score, not fed into it — doing that would mean
