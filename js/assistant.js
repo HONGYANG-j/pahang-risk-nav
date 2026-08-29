@@ -140,18 +140,31 @@ function appendMessage(role, text) {
   return row;
 }
 
-async function ask(text) {
+/** Reads a reply aloud -- only called for voice-initiated turns (see
+ * initAssistant's mic wiring below), so typing a question never triggers
+ * unexpected audio. cancel() first so a fast follow-up doesn't queue behind
+ * (and eventually talk over) a reply still being read. */
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text.replace(/\n+/g, ". "));
+  window.speechSynthesis.speak(utter);
+}
+
+async function ask(text, { viaVoice = false } = {}) {
   if (!text.trim()) return;
   appendMessage("user", text);
   const pending = appendMessage("bot", "Thinking…");
+  let finalText;
   try {
-    const reply = await askLLM(text);
-    if (pending) pending.textContent = reply;
+    finalText = await askLLM(text);
   } catch (err) {
     console.warn("LLM assistant unavailable, falling back to grounded lookup:", err.message);
     const fallback = answerQuery(text);
-    if (pending) pending.textContent = LLM_WORKER_URL ? `${fallback}\n\n(Real AI assistant unavailable right now -- showing the grounded lookup instead.)` : fallback;
+    finalText = LLM_WORKER_URL ? `${fallback}\n\n(Real AI assistant unavailable right now -- showing the grounded lookup instead.)` : fallback;
   }
+  if (pending) pending.textContent = finalText;
+  if (viaVoice) speak(finalText);
 }
 
 export function initAssistant() {
@@ -193,4 +206,44 @@ export function initAssistant() {
       input.value = "";
     }
   });
+
+  // Voice in, voice out -- "talk to the AI instead of texting", the point
+  // being not having to look at/type on a phone while riding. Web Speech
+  // API is browser-native (no key, no backend), but support is real and
+  // uneven (Firefox has none) -- feature-detected, and the button simply
+  // doesn't render rather than existing as a dead control on browsers that
+  // can't do it.
+  const micBtn = document.getElementById("assistant-mic-btn");
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (micBtn && SpeechRecognitionCtor) {
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    let listening = false;
+
+    recognition.addEventListener("start", () => {
+      listening = true;
+      micBtn.classList.add("listening");
+    });
+    recognition.addEventListener("end", () => {
+      listening = false;
+      micBtn.classList.remove("listening");
+    });
+    recognition.addEventListener("result", (e) => {
+      const transcript = e.results[0][0].transcript;
+      ask(transcript, { viaVoice: true });
+    });
+    recognition.addEventListener("error", (e) => {
+      if (e.error === "not-allowed") appendMessage("bot", "Microphone access denied — enable it to ask by voice.");
+      else if (e.error === "no-speech") appendMessage("bot", "Didn't catch that — try again.");
+    });
+
+    micBtn.addEventListener("click", () => {
+      if (listening) recognition.stop();
+      else recognition.start();
+    });
+  } else if (micBtn) {
+    micBtn.hidden = true;
+  }
 }

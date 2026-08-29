@@ -7,6 +7,7 @@ import { initAlerts } from "./alerts.js";
 import { startDemoMode, stopDemoMode } from "./demo.js";
 import { logEvent } from "./eventlog.js";
 import { initAssistant } from "./assistant.js";
+import { initWeather } from "./weather.js";
 
 // start() is async and wired to a click, so a double-tap (routine on mobile)
 // ran the whole thing twice: L.map() threw "Map container is already
@@ -27,6 +28,7 @@ async function start() {
   startGeolocation();
   initAlerts();
   initAssistant();
+  initWeather();
   spawnBots(); // fire and forget -- OSRM calls happen in the background
 
   document.querySelectorAll("#time-toggle button").forEach((btn) => {

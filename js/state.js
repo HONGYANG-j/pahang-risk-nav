@@ -19,6 +19,8 @@ export const State = {
   densityCells: 0,
   densityVisible: false,
 
+  weather: null,   // real current conditions from Open-Meteo (see weather.js) -- {tempC, precipMm, code}, never fed into the risk score
+
   bots: [],             // array of bot objects, see bots.js
   activeJams: [],        // array of {lat, lng, botCount}
 
