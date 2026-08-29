@@ -26,7 +26,17 @@ is more than a consumer nav app:
   live demo never breaks even if the backend hiccups. The frontend itself
   stays fully static; the Worker is the one piece of real backend
   infrastructure in this project, deliberately kept separate and minimal so it
-  never had to hold a key in front-end code.
+  never had to hold a key in front-end code. A mic button next to its input
+  lets you ask by voice instead of typing (Web Speech API, browser-native, no
+  new backend) — the reply is read back aloud too, so the whole exchange can
+  happen without looking at the phone. Feature-detected: browsers without
+  speech recognition (Firefox) simply don't show the button.
+- **Real-time weather** — a 4th HUD stat (District/Risk/Jams/Weather) pulling
+  live current conditions from Open-Meteo (free, no key). Deliberately kept
+  separate from the risk score, not fed into it — doing that would mean
+  inventing a new risk formula on top of a dataset already established to
+  carry no real predictive signal, the same fabrication risk this project
+  avoids everywhere else.
 - **Policy Sandbox "Simulate Fix"** — the jam alert's action row includes a
   button that simulates dispatching a fix (patrol clears the jam) so the
   bot/simulation layer reads as "test an intervention before spending a real
@@ -38,9 +48,12 @@ is more than a consumer nav app:
 
 **Deliberately not built here** (would need data or infrastructure this
 project doesn't have — see conversation/memory for the reasoning): a
-socioeconomic (OpenDOSM) risk overlay, hyper-local hotspot data (monsoon
-flood zones, informal roads), and anything presented as a roadmap slide,
-which belongs in the pitch deck, not the running app.
+socioeconomic (OpenDOSM) risk overlay, hyper-local hazard data (potholes,
+uneven road surface, sharp corners, monsoon flood prediction — no real
+Malaysian dataset at this granularity exists), Waze-style live crowdsourced
+reports (needs a real user base to generate real reports, which a new app
+doesn't have), and anything presented as a roadmap slide, which belongs in
+the pitch deck, not the running app.
 
 ## Live vs. Demo — two fully separate modes
 
