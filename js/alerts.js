@@ -4,6 +4,7 @@ import { rerouteAvoiding } from "./routing.js";
 import { haversineMeters } from "./risk.js";
 import { logEvent } from "./eventlog.js";
 import { resolveJamNear } from "./bots.js";
+import { speak } from "./tts.js";
 
 const CHECK_MS = 2000;
 const USER_PROXIMITY_M = 300;
@@ -167,10 +168,14 @@ function showAlert(text, key, source = "") {
   // risk score, which isn't something a button plausibly "fixes".
   if (fixBtn) fixBtn.hidden = !(key.startsWith("routejam") || key.startsWith("userjam"));
 
-  // Log once per new condition, not every 2s while the same alert persists.
+  // Log (and speak) once per new condition, not every 2s while the same
+  // alert persists -- works identically for real GPS and demo mode, both of
+  // which funnel through this same evaluate() loop. Speaks the exact banner
+  // text, not a separate wording, so what's said always matches what's shown.
   if (key !== lastAlertKey) {
     const severity = key.startsWith("routejam") || key.startsWith("userjam") ? "warn" : "danger";
     logEvent(text, severity);
+    speak(text);
     lastAlertKey = key;
   }
 }

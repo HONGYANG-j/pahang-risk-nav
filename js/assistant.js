@@ -1,5 +1,6 @@
 import { State } from "./state.js";
 import { getDistrictAt } from "./risk.js";
+import { speak } from "./tts.js";
 
 const BUCKETS = ["morning", "afternoon", "evening", "night"];
 const DISCLOSURE = "(Based on placeholder synthetic sample data -- not a validated model.)";
@@ -138,17 +139,6 @@ function appendMessage(role, text) {
   log.append(row);
   log.scrollTop = log.scrollHeight;
   return row;
-}
-
-/** Reads a reply aloud -- only called for voice-initiated turns (see
- * initAssistant's mic wiring below), so typing a question never triggers
- * unexpected audio. cancel() first so a fast follow-up doesn't queue behind
- * (and eventually talk over) a reply still being read. */
-function speak(text) {
-  if (!("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text.replace(/\n+/g, ". "));
-  window.speechSynthesis.speak(utter);
 }
 
 // Same guard shape as demoBusy/crashLoading/densityLoading elsewhere in this
