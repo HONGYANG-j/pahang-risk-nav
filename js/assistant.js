@@ -151,8 +151,18 @@ function speak(text) {
   window.speechSynthesis.speak(utter);
 }
 
+// Same guard shape as demoBusy/crashLoading/densityLoading elsewhere in this
+// app: askLLM is a real network round-trip, so without this a fast
+// double-tap (Enter twice, or the mic re-tapped while a reply is still
+// pending -- easy to do while waiting on a voice reply) fires a second
+// concurrent request, producing two overlapping "Thinking…" bubbles and
+// possibly out-of-order replies.
+let assistantBusy = false;
+
 async function ask(text, { viaVoice = false } = {}) {
-  if (!text.trim()) return;
+  if (!text.trim() || assistantBusy) return;
+  assistantBusy = true;
+  syncAssistantBusyUI();
   appendMessage("user", text);
   const pending = appendMessage("bot", "Thinking…");
   let finalText;
@@ -162,9 +172,19 @@ async function ask(text, { viaVoice = false } = {}) {
     console.warn("LLM assistant unavailable, falling back to grounded lookup:", err.message);
     const fallback = answerQuery(text);
     finalText = LLM_WORKER_URL ? `${fallback}\n\n(Real AI assistant unavailable right now -- showing the grounded lookup instead.)` : fallback;
+  } finally {
+    assistantBusy = false;
+    syncAssistantBusyUI();
   }
   if (pending) pending.textContent = finalText;
   if (viaVoice) speak(finalText);
+}
+
+function syncAssistantBusyUI() {
+  const sendBtn = document.getElementById("assistant-send-btn");
+  const micBtn = document.getElementById("assistant-mic-btn");
+  if (sendBtn) sendBtn.disabled = assistantBusy;
+  if (micBtn) micBtn.disabled = assistantBusy;
 }
 
 export function initAssistant() {

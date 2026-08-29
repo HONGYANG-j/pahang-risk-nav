@@ -24,7 +24,15 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 const GROQ_MODEL = "openai/gpt-oss-20b"; // cheapest text-only model on this account, plenty for short grounded Q&A
-const MAX_TOKENS = 300;
+// gpt-oss-20b is a reasoning model -- it can spend tokens on an internal
+// reasoning trace before ever emitting final answer content. At the
+// original 300, a question that invited more "thinking" (e.g. comparing
+// multiple districts) could exhaust the whole budget on reasoning and
+// return empty content, surfacing as a 502 "empty_reply" and silently
+// falling back to the grounded lookup -- found via live testing, not a
+// guess. Real cost is still negligible at this model's pricing even at 4x
+// the budget.
+const MAX_TOKENS = 1200;
 const IP_LIMIT_PER_HOUR = 20; // per-visitor abuse guard
 const GLOBAL_LIMIT_PER_DAY = 300; // total-cost guard, shared across all visitors
 
