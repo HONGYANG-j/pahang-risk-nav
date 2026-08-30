@@ -410,10 +410,16 @@ export async function planRoute(requestedDest) {
 
 /**
  * Reroutes away from a trouble point (a flagged risk zone or a simulated jam
- * centroid). Strategy: ask OSRM for alternatives and pick whichever stays
- * farthest from the trouble point; if OSRM returns no real alternative (common
- * on simpler rural road networks), try nudging a via-point sideways at a
- * couple of different distances and routing through that instead.
+ * centroid). Strategy: ask OSRM for alternatives; if none of them actually
+ * clear the trouble point by a real margin (common -- OSRM's alternatives
+ * algorithm optimises for "a sufficiently different route", not "avoids this
+ * specific coordinate", so it often doesn't help at all), fall back to
+ * nudging a via-point sideways at a couple of different distances and
+ * routing through that instead. Among everything that DOES clear the point
+ * (by ROUTE_JAM_CLEARANCE_M) without ballooning the trip too far (past
+ * MAX_DETOUR_RATIO), pick the SHORTEST one -- clearing the hazard is the bar
+ * a candidate has to clear to be considered at all, not something to
+ * maximise once it already has.
  *
  * Every candidate is validated before being shown: it must actually clear the
  * trouble point by a real margin, and not balloon the trip distance. An
@@ -428,11 +434,49 @@ export async function planRoute(requestedDest) {
 export async function rerouteAvoiding(troublePoint) {
   if (!State.userPos || !State.route.destination) throw new Error("No active route to reroute");
 
-  const originalDistanceM = State.route.coords ? routeLength(State.route.coords) : Infinity;
+  // The REMAINING distance along the original route from here, not the
+  // whole original trip's total length -- routeLength(State.route.coords)
+  // was measuring the latter, which made the detour-ratio ceiling far too
+  // loose the further into a drive the jam was hit (exactly where demo mode
+  // places its own jam: halfway through). A candidate computed from the
+  // current position is naturally short once most of the trip is already
+  // behind you, so comparing it against the FULL original distance let
+  // through candidates several times longer than what was actually left to
+  // drive, as long as they still fit under 1.6x the original total.
+  // cumDist/totalDistanceM are the same numbers updateRouteProgress already
+  // maintains on every position tick, just read here instead of recomputed.
+  let originalDistanceM = Infinity;
+  if (State.route.coords && State.route.cumDist) {
+    const idx = nearestIndexOnRoute(State.route.coords, State.userPos);
+    originalDistanceM = State.route.totalDistanceM - State.route.cumDist[idx];
+  }
   const routes = await fetchRoutes(State.userPos, State.route.destination, { alternatives: true });
-  const candidates = [...routes];
+  let candidates = [...routes];
 
-  if (routes.length <= 1) {
+  // Clearance is checked only PAST a short radius around the route's own
+  // start (State.userPos) -- an earlier version checked every point
+  // including the first one, which is a bug: the route necessarily starts
+  // at the user's current position, which is necessarily near the trouble
+  // point (that's *why* the alert fired). That made the clearance check fail
+  // for almost every candidate, including genuinely good ones, so reroute
+  // nearly always fell through to "no alternative found" -- reported as
+  // "it only follows the original routing". What actually matters is
+  // whether the route diverges from the trouble point further along, not
+  // whether it teleports away from where the driver already is.
+  const clearance = (coords) => minDistToPointBeyondStart(coords, troublePoint, State.userPos);
+  const isViable = (r) => clearance(r.coords) >= ROUTE_JAM_CLEARANCE_M && r.distanceM <= originalDistanceM * MAX_DETOUR_RATIO;
+
+  let viable = candidates.filter(isViable);
+
+  // Try the via-point fallback whenever OSRM's own alternatives didn't
+  // produce anything viable -- not just when it returned zero/one routes.
+  // Two OSRM alternatives that both fail to actually clear THIS point is the
+  // common case, not the edge case (OSRM doesn't know what point it's
+  // supposed to be avoiding), and the old `routes.length <= 1` gate skipped
+  // this fallback entirely whenever OSRM happened to return 2+ routes, even
+  // if none of them helped -- silently settling for "no alternative found"
+  // (or a bad candidate) when a real fix was one more request away.
+  if (!viable.length) {
     // Both offset attempts, and both legs within each, run concurrently
     // rather than one after another -- this was up to 4 sequential OSRM
     // round-trips (2 offsets x 2 legs), easily a few seconds of silent
@@ -457,24 +501,9 @@ export async function rerouteAvoiding(troublePoint) {
         return null;
       }
     });
-    candidates.push(...(await Promise.all(attempts)).filter(Boolean));
+    candidates = candidates.concat((await Promise.all(attempts)).filter(Boolean));
+    viable = candidates.filter(isViable);
   }
-
-  // Clearance is checked only PAST a short radius around the route's own
-  // start (State.userPos) -- an earlier version checked every point
-  // including the first one, which is a bug: the route necessarily starts
-  // at the user's current position, which is necessarily near the trouble
-  // point (that's *why* the alert fired). That made the clearance check fail
-  // for almost every candidate, including genuinely good ones, so reroute
-  // nearly always fell through to "no alternative found" -- reported as
-  // "it only follows the original routing". What actually matters is
-  // whether the route diverges from the trouble point further along, not
-  // whether it teleports away from where the driver already is.
-  const clearance = (coords) => minDistToPointBeyondStart(coords, troublePoint, State.userPos);
-
-  const viable = candidates.filter(
-    (r) => clearance(r.coords) >= ROUTE_JAM_CLEARANCE_M && r.distanceM <= originalDistanceM * MAX_DETOUR_RATIO
-  );
 
   if (!viable.length) {
     const el = document.getElementById("route-info");
@@ -482,7 +511,11 @@ export async function rerouteAvoiding(troublePoint) {
     return null;
   }
 
-  const chosen = viable.reduce((best, r) => (clearance(r.coords) > clearance(best.coords) ? r : best));
+  // Shortest among everything that clears the hazard -- not "whichever
+  // clears it by the widest margin", which tended to pick a needlessly
+  // longer detour whenever more than one candidate was viable (reported:
+  // "reroute places, where non jam place is rerouted to a longer place").
+  const chosen = viable.reduce((best, r) => (r.distanceM < best.distanceM ? r : best));
 
   drawRouteLine(chosen.coords, chosen.durationS, chosen.steps, "#4caf6b");
   // Same reasoning as planRoute: seed from the new route's own start, not
@@ -497,28 +530,11 @@ export async function rerouteAvoiding(troublePoint) {
   return chosen;
 }
 
-function routeLength(coords) {
-  let total = 0;
-  for (let i = 1; i < coords.length; i++) {
-    total += haversineMeters(coords[i - 1][0], coords[i - 1][1], coords[i][0], coords[i][1]);
-  }
-  return total;
-}
-
-function minDistToPoint(coords, point) {
-  let min = Infinity;
-  const step = Math.max(1, Math.floor(coords.length / 40));
-  for (let i = 0; i < coords.length; i += step) {
-    const [lat, lng] = coords[i];
-    min = Math.min(min, haversineMeters(lat, lng, point.lat, point.lng));
-  }
-  return min;
-}
-
 const ROUTE_START_EXCLUSION_M = 350; // skip this much of the route from its own start before checking clearance
 
-/** Like minDistToPoint, but ignores the stretch immediately around the
- * route's own start -- see the comment in rerouteAvoiding for why. */
+/** Minimum distance from any route point to `point`, ignoring the stretch
+ * immediately around the route's own start -- see the comment in
+ * rerouteAvoiding for why that exclusion matters. */
 function minDistToPointBeyondStart(coords, point, start) {
   let min = Infinity;
   const step = Math.max(1, Math.floor(coords.length / 60));
