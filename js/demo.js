@@ -340,11 +340,44 @@ export async function startDemoMode({ start: chosenStart = null, dest: chosenDes
       coords = route.coords;
     }
   } catch (e) {
+    // OSRM is a free public server with no SLA, so this genuinely happens.
+    // The fallback still animates, but along a straight line with no route
+    // drawn, no turn-by-turn and no trip bar -- subtly broken-looking with
+    // no on-screen reason why. console.warn alone was invisible to anyone
+    // actually using (or recording) the app, so say it where they'll see it.
     console.warn("Demo route planning failed, using straight line fallback:", e.message);
+    logEvent(
+      "Routing service unavailable — driving a straight line instead of real roads. " +
+        "Turn-by-turn and the route line are unavailable for this run; try again in a moment.",
+      "danger"
+    );
     coords = [
       [start.lat, start.lng],
       [target.lat, target.lng],
     ];
+  }
+
+  // Tell the user up front how long this will actually take in REAL time.
+  // An explicitly chosen destination is driven in full (demoMaxDistanceM =
+  // Infinity), which was fine when destinations could only be tapped on the
+  // nearby map -- but now that a destination can be typed as a place name,
+  // two real Pahang towns are easy to pick without realising the cost:
+  // measured, this runs ~7.5 real seconds per km, so Kuantan -> Kuala Lipis
+  // (210 km) is a ~26 MINUTE drive. Deliberately NOT silently truncating it
+  // instead: that reintroduces the exact "stops halfway" bug fixed earlier,
+  // and a capped run that falsely badges ARRIVED was its own bug too. Saying
+  // the number lets the user decide (and STOP is always right there).
+  const driveDistanceM = Math.min(cumulativeDistances(coords).slice(-1)[0], demoMaxDistanceM);
+  const realSeconds = driveDistanceM / ((CRUISE_KMH / 3.6) * DEMO_TIME_SCALE);
+  if (realSeconds > 180) {
+    logEvent(
+      `Heads up: this drive is ${(driveDistanceM / 1000).toFixed(0)} km — about ` +
+        `${Math.round(realSeconds / 60)} minutes to play out at ×${DEMO_TIME_SCALE}. ` +
+        `Press STOP any time, or leave the destination blank for a ~90-second demo.`,
+      "warn"
+    );
+  } else {
+    logEvent(`Simulated drive: ${(driveDistanceM / 1000).toFixed(1)} km, about ${Math.round(realSeconds)}s to play out`, "info");
   }
 
   // Demo mode exists to produce recordable footage, and the close-up driving

@@ -33,8 +33,15 @@ const GROQ_MODEL = "openai/gpt-oss-20b"; // cheapest text-only model on this acc
 // guess. Real cost is still negligible at this model's pricing even at 4x
 // the budget.
 const MAX_TOKENS = 1200;
-const IP_LIMIT_PER_HOUR = 20; // per-visitor abuse guard
-const GLOBAL_LIMIT_PER_DAY = 300; // total-cost guard, shared across all visitors
+// Raised from 20/hour and 300/day. 20/hour is genuinely tight for the one
+// case that matters most here: rehearsing and recording a demo video, where
+// several takes x a few questions each can quietly cross it -- and hitting
+// the limit mid-take degrades silently to the templated fallback, i.e. the
+// "this is a real LLM" moment breaks on camera with no obvious cause. Cost
+// is not the binding constraint at this model's pricing: even 500 requests
+// in a day is a few cents. Still bounded, so a shared link can't run away.
+const IP_LIMIT_PER_HOUR = 60; // per-visitor abuse guard
+const GLOBAL_LIMIT_PER_DAY = 500; // total-cost guard, shared across all visitors
 
 function corsHeaders(origin) {
   const allow = ALLOWED_ORIGINS.has(origin) ? origin : "";
