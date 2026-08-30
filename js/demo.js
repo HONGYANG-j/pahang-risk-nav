@@ -11,9 +11,13 @@ const DEMO_TICK_MS = 250;
 // simulated time runs faster than real time so a district-scale drive fits in
 // a short recording. The speed readout therefore shows the real speed of the
 // simulated vehicle (~60 km/h), not the rate the marker crosses the screen --
-// the "x20" badge in the UI makes that compression explicit rather than
-// letting the readout imply a 200+ km/h drive.
-const DEMO_TIME_SCALE = 20; // simulated seconds per real second
+// the badge in the UI states the compression explicitly rather than letting
+// the readout imply a 200+ km/h drive.
+// Lowered from 20 (user: "it move a bit too fast") -- also matters for the
+// new spoken turn-by-turn: at 20x, the vehicle covered ANNOUNCE_DISTANCE_M
+// (routing.js) in under a second of real time, nowhere near enough for a
+// multi-word announcement to actually finish before the turn arrived.
+const DEMO_TIME_SCALE = 8; // simulated seconds per real second
 const CRUISE_KMH = 60;
 const JAM_CRAWL_KMH = 12; // speed once caught in the simulated jam
 // How far either side of the jam the vehicle crawls. This is a *beat*, not a
@@ -25,7 +29,7 @@ const JAM_CRAWL_KMH = 12; // speed once caught in the simulated jam
 // ~350 m keeps it to a legible ~10 s.
 const JAM_SLOWDOWN_RADIUS_M = 350;
 
-const MAX_DEMO_DISTANCE_M = 12000; // keeps a run to roughly a minute of footage
+const MAX_DEMO_DISTANCE_M = 12000; // ~90s of footage at the current DEMO_TIME_SCALE, cruise speed
 // A destination too close leaves no room for the beats: the jam-slowdown radius
 // would cover most of the drive, so the cruise -> slow-for-jam contrast never
 // shows on camera. Prefer a high-risk district at least this far out.
@@ -228,7 +232,11 @@ function setPlaybackBadge(visible, text) {
   if (visible && text) badge.textContent = text;
 }
 
-const DRIVING_BADGE = "SIMULATED DRIVE · ×20";
+// Derived from DEMO_TIME_SCALE, not hardcoded -- this badge exists
+// specifically to disclose the compression factor honestly, so it can't be
+// allowed to silently drift out of sync with the constant again next time
+// this gets tuned.
+const DRIVING_BADGE = `SIMULATED DRIVE · ×${DEMO_TIME_SCALE}`;
 const ARRIVED_BADGE = "ARRIVED";
 const ENDED_BADGE = "DRIVE ENDED";
 

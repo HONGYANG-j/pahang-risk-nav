@@ -8,6 +8,29 @@ import { startDemoMode, stopDemoMode } from "./demo.js";
 import { logEvent } from "./eventlog.js";
 import { initAssistant } from "./assistant.js";
 import { initWeather } from "./weather.js";
+import { geocode, looksLikeLatLng } from "./geocode.js";
+
+/** Resolves free-typed text to {lat,lng} -- "lat,lng" is parsed directly
+ * (no network round-trip), anything else is geocoded via Nominatim. Shared
+ * by the live route field and both demo fields so all three gained place-
+ * name search the same way. `label` names the field in the status message
+ * ("Start", "Destination") and `statusEl` is where errors/progress show. */
+async function resolveLocation(raw, label, statusEl) {
+  const trimmed = raw.trim();
+  if (!trimmed) return { ok: true, value: null };
+  if (looksLikeLatLng(trimmed)) {
+    const [lat, lng] = trimmed.split(",").map((s) => parseFloat(s.trim()));
+    return { ok: true, value: { lat, lng } };
+  }
+  statusEl.textContent = `Looking up ${label.toLowerCase()}…`;
+  try {
+    const { lat, lng } = await geocode(trimmed);
+    return { ok: true, value: { lat, lng } };
+  } catch (e) {
+    statusEl.textContent = e.message;
+    return { ok: false, value: null };
+  }
+}
 
 // start() is async and wired to a click, so a double-tap (routine on mobile)
 // ran the whole thing twice: L.map() threw "Map container is already
@@ -80,40 +103,54 @@ async function start() {
   document.getElementById("mode-live-btn").addEventListener("click", () => selectMode("live"));
   document.getElementById("mode-demo-btn").addEventListener("click", () => selectMode("demo"));
 
+  // A geocode lookup is a real network round-trip (unlike the old
+  // instant-parse "lat,lng" path), so a fast double-tap on GO -- or hitting
+  // Enter then clicking GO -- can now fire two concurrent submitRoute()
+  // calls. Same guard shape as demoBusy/assistantBusy elsewhere in this app.
+  let routeBusy = false;
   async function submitRoute() {
-    const raw = document.getElementById("dest-input").value.trim();
+    if (routeBusy) return;
     // #route-status is transient in-drawer feedback (errors, "Routing...") --
     // distinct from #route-info in the persistent trip-bar, which shows the
     // final "you have an active route" result and needs to stay visible after
     // the drawer closes.
     const status = document.getElementById("route-status");
-    const parts = raw.split(",").map((s) => parseFloat(s.trim()));
-    if (parts.length !== 2 || parts.some(Number.isNaN)) {
-      status.textContent = "Enter destination as: lat,lng";
+    const raw = document.getElementById("dest-input").value.trim();
+    if (!raw) {
+      status.textContent = "Enter a destination";
       return;
     }
-    // Manual routing doesn't need live GPS at all -- that's the OTHER path
-    // (real position via startGeolocation). This one is "no GPS, pick a
-    // destination and go": without a start point of some kind planRoute()
-    // has nothing to route FROM, so without this, anyone whose device never
-    // gets a fix (permission denied, no GPS hardware, testing indoors)
-    // couldn't plan a route at all -- not even to explore or simulate one.
-    // The map's current centre is a reasonable stand-in start: wherever the
-    // user has actually panned to, or Pahang's centroid on first load.
-    if (!State.userPos) {
-      const center = State.map.getCenter();
-      updateUserPosition(center.lat, center.lng, 0, undefined, "manual");
-      logEvent("No live GPS — planning from the map's centre. Press GO, then START to simulate the drive.", "info");
-    }
-    status.textContent = "Routing...";
+    routeBusy = true;
+    const routeBtn = document.getElementById("route-btn");
+    routeBtn.disabled = true;
     try {
-      await planRoute({ lat: parts[0], lng: parts[1] });
-      logEvent(`Route planned to ${parts[0].toFixed(4)}, ${parts[1].toFixed(4)}`, "info");
+      const dest = await resolveLocation(raw, "Destination", status);
+      if (!dest.ok) return;
+
+      // Manual routing doesn't need live GPS at all -- that's the OTHER path
+      // (real position via startGeolocation). This one is "no GPS, pick a
+      // destination and go": without a start point of some kind planRoute()
+      // has nothing to route FROM, so without this, anyone whose device never
+      // gets a fix (permission denied, no GPS hardware, testing indoors)
+      // couldn't plan a route at all -- not even to explore or simulate one.
+      // The map's current centre is a reasonable stand-in start: wherever the
+      // user has actually panned to, or Pahang's centroid on first load.
+      if (!State.userPos) {
+        const center = State.map.getCenter();
+        updateUserPosition(center.lat, center.lng, 0, undefined, "manual");
+        logEvent("No live GPS — planning from the map's centre. Press GO, then START to simulate the drive.", "info");
+      }
+      status.textContent = "Routing...";
+      await planRoute(dest.value);
+      logEvent(`Route planned to ${dest.value.lat.toFixed(4)}, ${dest.value.lng.toFixed(4)}`, "info");
       status.textContent = "";
       closeDrawer(); // route is live -- back to the map + trip-bar, same as Waze after picking a destination
     } catch (e) {
       status.textContent = `Routing failed: ${e.message}`;
       logEvent(`Routing failed: ${e.message}`, "warn");
+    } finally {
+      routeBusy = false;
+      syncGoEnabled(); // not just `routeBtn.disabled = false` -- respects an empty field if one was cleared mid-lookup
     }
   }
   document.getElementById("route-btn").addEventListener("click", submitRoute);
@@ -315,22 +352,10 @@ async function start() {
   document.getElementById("demo-start-pin-btn").addEventListener("click", () => armField("demo-start"));
   document.getElementById("demo-dest-pin-btn").addEventListener("click", () => armField("demo-dest"));
 
-  /** Parses "lat,lng" -> {lat,lng}, or null for a blank field (both fields
-   * are optional: startDemoMode() falls back to live position / an
-   * auto-picked district exactly like the original one-button demo did). */
-  function parseLatLng(raw, label, statusEl) {
-    const trimmed = raw.trim();
-    if (!trimmed) return { ok: true, value: null };
-    const parts = trimmed.split(",").map((s) => parseFloat(s.trim()));
-    if (parts.length !== 2 || parts.some(Number.isNaN)) {
-      statusEl.textContent = `${label} must be lat,lng`;
-      return { ok: false, value: null };
-    }
-    return { ok: true, value: { lat: parts[0], lng: parts[1] } };
-  }
-
-  // startDemoMode is async (it fetches routes), so without a guard a fast
-  // double-click can start a second run on top of the first.
+  // startDemoMode is async (it fetches routes), and resolveLocation now can
+  // be too (a geocode round-trip) -- moved the busy-check to the very top,
+  // before either field is resolved, so a fast double-click can't fire two
+  // overlapping lookups even before startDemoMode itself is reached.
   let demoBusy = false;
   document.getElementById("demo-drive-btn").addEventListener("click", async () => {
     if (demoBusy) return;
@@ -342,14 +367,20 @@ async function start() {
       return;
     }
 
-    const start = parseLatLng(document.getElementById("demo-start-input").value, "Start", status);
-    if (!start.ok) return;
-    const dest = parseLatLng(document.getElementById("demo-dest-input").value, "Destination", status);
-    if (!dest.ok) return;
-
     demoBusy = true;
-    status.textContent = "Starting demo drive…";
+    const demoBtn = document.getElementById("demo-drive-btn");
+    demoBtn.disabled = true;
     try {
+      // Both fields are optional (blank -> live position / an auto-picked
+      // district, the original one-click behaviour) -- resolved in sequence,
+      // not Promise.all, so the status message never shows two lookups'
+      // progress at once.
+      const start = await resolveLocation(document.getElementById("demo-start-input").value, "Start", status);
+      if (!start.ok) return;
+      const dest = await resolveLocation(document.getElementById("demo-dest-input").value, "Destination", status);
+      if (!dest.ok) return;
+
+      status.textContent = "Starting demo drive…";
       logEvent("Demo drive started — simulated, not real movement", "info");
       await startDemoMode({ start: start.value, dest: dest.value });
       status.textContent = "";
@@ -359,6 +390,7 @@ async function start() {
       logEvent(`Demo drive failed to start: ${e.message}`, "warn");
     } finally {
       demoBusy = false;
+      demoBtn.disabled = false;
     }
   });
 }

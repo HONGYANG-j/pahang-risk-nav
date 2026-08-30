@@ -96,7 +96,7 @@
     <header id="mini-topbar">
       <span class="brand-glyph" aria-hidden="true">&#9686;</span>
       <div id="status-pill"><span class="status-dot"></span><span id="status-pill-label">SEARCHING&hellip;</span></div>
-      <div id="playback-badge" hidden>SIMULATED DRIVE &middot; &times;20</div>
+      <div id="playback-badge" hidden>SIMULATED DRIVE &middot; &times;8</div>
       <button id="menu-btn" aria-label="Open details"><i class="menu-glyph">&#9776;</i></button>
     </header>
 
@@ -224,9 +224,9 @@
              follows your actual device position -- never a simulation. -->
         <div id="route-panel">
           <div class="panel-title">ROUTE <span class="panel-subtitle">— live, your real GPS</span></div>
-          <div class="route-hint">Tap the map or type coordinates, then GO — works with or without a live fix.</div>
+          <div class="route-hint">Tap the map, type a place name, or type coordinates, then GO — works with or without a live fix.</div>
           <div class="route-row">
-            <input id="dest-input" type="text" placeholder="Destination" />
+            <input id="dest-input" type="text" placeholder="Destination (place name or lat,lng)" />
             <button id="route-btn" disabled title="Pick a destination first">GO</button>
           </div>
           <div id="route-status"></div>
@@ -238,13 +238,13 @@
              fully stops it, no matter which control started it. -->
         <div id="demo-panel" hidden>
           <div class="panel-title">DEMO DRIVE <span class="panel-subtitle">— simulated, not real movement</span></div>
-          <div class="route-hint">Pick a start and destination (tap &#128205; then the map, or type coordinates) — both optional, blank defaults to your position and a nearby high-risk district.</div>
+          <div class="route-hint">Pick a start and destination (tap &#128205; then the map, or type a place name or coordinates) — both optional, blank defaults to your position and a nearby high-risk district.</div>
           <div class="demo-point-row">
-            <input id="demo-start-input" type="text" placeholder="Start (optional)" />
+            <input id="demo-start-input" type="text" placeholder="Start (place name, optional)" />
             <button id="demo-start-pin-btn" type="button" aria-label="Set start by tapping the map" title="Set start by tapping the map">&#128205;</button>
           </div>
           <div class="demo-point-row">
-            <input id="demo-dest-input" type="text" placeholder="Destination (optional)" />
+            <input id="demo-dest-input" type="text" placeholder="Destination (place name, optional)" />
             <button id="demo-dest-pin-btn" type="button" aria-label="Set destination by tapping the map" title="Set destination by tapping the map">&#128205;</button>
           </div>
           <button id="demo-drive-btn"><span class="play-glyph">&#9654;</span><span id="demo-drive-label">Start Demo Drive</span></button>
@@ -289,6 +289,6 @@
 <!-- Registers L.heatLayer -- renders the real density model (risk.js
      loadDensityModel) as a smooth heatmap. Needs to load after leaflet.js. -->
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<script type="module" src="js/app.js?v=13"></script>
+<script type="module" src="js/app.js?v=14"></script>
 </body>
 </html>

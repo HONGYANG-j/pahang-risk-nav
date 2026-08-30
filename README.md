@@ -31,6 +31,17 @@ is more than a consumer nav app:
   new backend) — the reply is read back aloud too, so the whole exchange can
   happen without looking at the phone. Feature-detected: browsers without
   speech recognition (Firefox) simply don't show the button.
+- **Spoken turn-by-turn** — the on-screen turn banner ("turn left onto Jalan
+  X, 150m") is also read aloud once per maneuver, in demo and real GPS
+  navigation, once it's within announcing distance. A minimum gap between
+  announcements keeps a dense urban route (many close-together turns) from
+  producing overlapping, cut-off speech — a later announcement doesn't
+  interrupt one still being read; the visual banner stays live either way.
+- **Type a place name, not just coordinates** — the live route field and both
+  demo fields (start/destination) accept a real place name ("Kuantan",
+  "Jalan Tun Razak") and geocode it via Nominatim (OpenStreetMap, free, no
+  key), biased toward Pahang. `lat,lng` still works too, tried first since it
+  needs no network round-trip.
 - **Spoken hazard alerts** — jam and risk-zone alerts (the same banner shown
   on screen) are read aloud once via the same voice engine, in both demo and
   real GPS navigation — no need to look at the screen to know a hazard just
@@ -257,10 +268,13 @@ only ~17 m per 250 ms tick, so every 100 m of slowdown zone costs ~1.5 s of
 real time. A 900 m radius therefore meant 1800 m of crawling — about **27
 seconds** stuck at walking pace, starting exactly halfway, which measured out
 as most of the run and read as "the demo stopped halfway and isn't moving".
-The radius is 350 m (`min(350, total * 0.05)`), giving a ~10 s beat. Worth
+The radius is 350 m (`min(350, total * 0.05)`). Worth
 re-measuring rather than eyeballing if these constants ever change: step the
 animation tick by hand (capture the 250 ms `setInterval` callback and call it
-in a loop) so wall-clock throttling can't distort the result.
+in a loop) so wall-clock throttling can't distort the result. (The specific
+numbers above are from when this was diagnosed, at the compression factor
+current then — see the note below for the current one; the radius itself
+hasn't changed, only how long real time it now takes to cross it.)
 
 **Arrival is announced.** Reaching the destination used to just clear the
 interval and go quiet — the vehicle stopped, but the badge still said a drive
@@ -272,10 +286,12 @@ arrival view is worth keeping on screen, and Stop demo / EXIT already do a
 full reset.
 
 The simulated vehicle drives at realistic speed in *simulated* time, with
-simulated time running 20x faster than real time so a district-scale drive fits
-in a short clip. The speed readout therefore shows the vehicle's real speed
-(~60 km/h), not the rate the marker crosses the screen — the on-screen
-**"x20 playback"** badge makes that compression explicit.
+simulated time running faster than real time (currently 8x — lowered from an
+original 20x, which felt too fast on screen) so a district-scale drive still
+fits in a short clip. The speed readout therefore shows the vehicle's real
+speed (~60 km/h), not the rate the marker crosses the screen — the on-screen
+playback badge (**"x8"**, derived from the same constant so it can't drift
+out of sync) makes that compression explicit.
 
 ## Swapping in the real model (for the modeling teammates)
 
@@ -484,7 +500,7 @@ the recording. START also handles the case that made it look broken —
 "after I pressed start, it is not moving at all": on a stationary device
 (testing at a desk) there is simply nothing for the camera to follow, so if a
 route is planned and the device isn't actually moving, START drives that route
-in simulation, badged **SIMULATED DRIVE · ×20** so it is never mistaken for a
+in simulation, badged **SIMULATED DRIVE · ×8** so it is never mistaken for a
 real trip. It drives *the route you planned* (`startDemoMode({useExistingRoute:
 true})`), not a demo destination of its own — pressing "start navigating" and
 being taken somewhere you never asked for would be its own bug. EXIT only tears

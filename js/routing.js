@@ -2,6 +2,7 @@ import { State } from "./state.js";
 import { getRiskAlongRoute, haversineMeters } from "./risk.js";
 import { onUserMove, syncNavButton } from "./map.js";
 import { logEvent } from "./eventlog.js";
+import { speak } from "./tts.js";
 
 const OSRM_BASE = "https://router.project-osrm.org/route/v1/driving";
 const ROUTE_JAM_CLEARANCE_M = 400; // an alternate must clear the trouble point by at least this much to count as "avoiding" it
@@ -93,6 +94,11 @@ function drawRouteLine(coords, durationS, steps, color = "#2f6fed") {
   State.route.totalDurationS = durationS;
   State.route.steps = steps || [];
   State.route.stepStartM = stepStartDistances(State.route.steps);
+  // A new route (or a reroute) means every maneuver is un-announced again --
+  // without this a reroute would silently stay silent, since the old route's
+  // step 2 having already been spoken doesn't say anything about the new
+  // route's step 2.
+  announcedStepIndex = -1;
   // Fit-to-whole-route is the right framing when PICKING a route, but wrong
   // while driving one: a reroute fires this same function mid-drive, and
   // zooming out to the full route there would throw the camera off the
@@ -193,6 +199,65 @@ const TURN_ICON_DEG = {
   uturn: 180, "sharp left": -120, left: -90, "slight left": -30,
 };
 
+// modifier -> how to say it. Same coverage as TURN_ICON_DEG, worded for
+// speech rather than an icon rotation.
+const TURN_SPEECH = {
+  straight: "Continue straight", "slight right": "Bear right", right: "Turn right",
+  "sharp right": "Sharp right turn", uturn: "Make a U-turn", "sharp left": "Sharp left turn",
+  left: "Turn left", "slight left": "Bear left",
+};
+
+// Announce a maneuver once it's this close, not the moment it becomes
+// "next" (which could be several km away on a long straight) -- close
+// enough to be actionable, matching how real turn-by-turn apps time their
+// first announcement of a maneuver. Tuned against demo mode specifically:
+// at DEMO_TIME_SCALE's compression, the vehicle covers ground fast even at
+// "slow" -- a smaller distance here left under a second of real time between
+// the announcement starting and the turn arriving, nowhere near enough for
+// a multi-word phrase to finish being spoken. 400m gives a few real seconds
+// of lead time at cruise speed; real GPS navigation gets the same distance,
+// which reads as an earlier-than-typical heads-up there, a reasonable
+// trade for keeping one threshold instead of a demo-only special case.
+const ANNOUNCE_DISTANCE_M = 400;
+
+// Index of the step last announced by voice, so each maneuver is spoken
+// exactly once no matter how many ticks it stays within ANNOUNCE_DISTANCE_M
+// (crawling through a jam right before a turn, for instance). -1 = nothing
+// announced yet for the current route; drawRouteLine resets this on every
+// new route or reroute.
+let announcedStepIndex = -1;
+
+// A minimum real-world gap between spoken turn announcements. Dense urban
+// routing (found live-testing a real Kuantan street route) can put several
+// maneuvers within a couple hundred metres of each other -- without this,
+// each new announcement calls speak()'s cancel()-then-speak() and cuts the
+// previous one off mid-word, producing a garbled overlapping stream rather
+// than clean back-to-back instructions. Real turn-by-turn systems do the
+// same thing: they don't narrate every minor intersection on a dense route,
+// they consolidate/skip. A skipped announcement isn't silently lost
+// information either -- the visual turn banner still shows it.
+const MIN_TURN_ANNOUNCE_GAP_MS = 3000;
+let lastTurnAnnounceAt = 0;
+
+function speechDistance(m) {
+  if (m < 1000) return `${Math.max(0, Math.round(m / 10) * 10)} meters`;
+  return `${(m / 1000).toFixed(1)} kilometers`;
+}
+
+function announceManeuver(type, modifier, streetName, distanceM) {
+  if (type === "arrive") {
+    speak("Arriving at your destination");
+    return;
+  }
+  const distText = speechDistance(distanceM);
+  if (type.includes("roundabout") || type.includes("rotary")) {
+    speak(`Enter the roundabout in ${distText}`);
+    return;
+  }
+  const phrase = TURN_SPEECH[modifier] || "Continue";
+  speak(streetName ? `${phrase} onto ${streetName} in ${distText}` : `${phrase} in ${distText}`);
+}
+
 /** Updates the top-of-screen turn-by-turn banner: which maneuver is coming
  * up and how far to it. `traveledM` is the same figure updateRouteProgress
  * already computed, passed in rather than recomputed. */
@@ -236,8 +301,25 @@ function updateTurnBanner(traveledM) {
     icon.style.transform = `rotate(${TURN_ICON_DEG[modifier] ?? 0}deg)`;
     streetEl.textContent = next.name || "";
   }
-  distEl.textContent = formatTurnDistance(Math.max(0, stepStartM[i + 1] - traveledM));
+  const distRemaining = Math.max(0, stepStartM[i + 1] - traveledM);
+  distEl.textContent = formatTurnDistance(distRemaining);
   banner.hidden = false;
+
+  // Speak once per maneuver, only once it's actually close -- `i` (not the
+  // maneuver text) is the identity check, so this can't double-announce two
+  // different steps that happen to share a modifier (e.g. two "left"s back
+  // to back). announcedStepIndex only advances on an announcement that
+  // actually fires (not one skipped by the cooldown below), so a step
+  // blocked by the gate stays eligible and gets announced on a later tick
+  // once the gap has passed, as long as it's still the upcoming step.
+  if (i !== announcedStepIndex && distRemaining <= ANNOUNCE_DISTANCE_M) {
+    const now = Date.now();
+    if (now - lastTurnAnnounceAt >= MIN_TURN_ANNOUNCE_GAP_MS) {
+      announcedStepIndex = i;
+      lastTurnAnnounceAt = now;
+      announceManeuver(type, modifier, next.name, distRemaining);
+    }
+  }
 }
 
 /** The live "on the way" view: how far's left, updated as you actually move,
