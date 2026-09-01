@@ -58,6 +58,18 @@ export async function initMap() {
   // risk than fighting for one. Scroll-wheel/pinch/double-click zoom still
   // work; this only removes the on-screen buttons.
   const map = L.map("map", { zoomControl: false, worldCopyJump: false });
+  // Dedicated pane for the density heatmap, given a zIndex just below the
+  // default overlayPane (400) that the Pahang mask polygon lives in. Without
+  // this, the heat layer -- toggled on later, by the user -- gets appended
+  // to the DOM after the mask and paints on top of it, so its blur (26px
+  // radius, 22px blur, in screen pixels) visibly bleeds past the real state
+  // border into the sea and neighbouring states at any zoomed-out view.
+  // Reported as "the locations shown by the map is inaccurate". Pane-based
+  // z-ordering (unlike bringToFront()) holds regardless of add/toggle order.
+  map.createPane("heatPane");
+  const heatPane = map.getPane("heatPane");
+  heatPane.style.zIndex = 399;
+  heatPane.style.pointerEvents = "none";
   // Esri Dark Gray Canvas (base layer only -- there's a separate "Reference"
   // layer with labels, deliberately not added: street/place names in tiny
   // map text were competing with our own HUD readouts for attention).

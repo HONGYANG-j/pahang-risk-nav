@@ -150,6 +150,10 @@ export async function loadDensityModel() {
     blur: 22,
     maxZoom: 13,
     minOpacity: 0.15,
+    // Rendered below the Pahang mask (see map.js's heatPane) so the blur
+    // gets cropped to the real state boundary instead of bleeding into the
+    // sea/neighbouring states at a zoomed-out view.
+    pane: "heatPane",
     // Cyan -> amber -> red: the same low/caution/danger language the rest of
     // the HUD already uses (status pill, risk-zone shading), rather than a
     // generic heatmap default that wouldn't read as part of the same app.
