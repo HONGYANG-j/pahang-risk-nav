@@ -1,5 +1,10 @@
 # Risk-Aware Navigation — Prototype
 
+> **This repository is preserved as-is** — the exact state submitted for the
+> DAX 2026 Road Safety challenge. Ongoing development (region generalization,
+> a tested/isolated data pipeline, and beyond) continues at
+> **[HONGYANG-j/map](https://github.com/HONGYANG-j/map)**.
+
 Companion "AI app" concept for the DAX 2026 Road Safety submission. This is a
 demo prototype, not one of the three official scored deliverables (dashboard /
 video / report) — see `../` for those.
